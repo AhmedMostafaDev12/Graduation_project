@@ -8,20 +8,30 @@ LangGraph-based conversational agent that:
 3. Creates tasks from natural language
 4. Acts as general everyday assistant
 
-Uses Ollama (llama3.1:8b) for natural language understanding.
+Uses Groq API (via LangChain) for fast, cloud-based LLM inference.
 """
 
 from typing import TypedDict, Annotated, List, Dict, Any
 from langgraph.graph import StateGraph, END
 import operator
-import subprocess
 import json
+import os
+from langchain_groq import ChatGroq
+from langchain.schema import HumanMessage, SystemMessage
 
 from .companion_tools import (
     save_emotional_entry,
     get_task_statistics,
     get_burnout_status,
     create_task_from_text
+)
+
+# Initialize Groq LLM with LangChain
+llm = ChatGroq(
+    model="llama-3.1-70b-versatile",
+    groq_api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.7,
+    max_tokens=1024
 )
 
 
@@ -89,16 +99,12 @@ Respond in JSON format:
 """
 
     try:
-        result = subprocess.run(
-            ["ollama", "run", "llama3.1:8b", prompt],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',  # Fix Unicode errors with Arabic/special chars
-            errors='replace',   # Replace invalid chars instead of crashing
-            timeout=30          # Increase timeout for slow responses
-        )
+        # Use LangChain ChatGroq for intent classification
+        messages = [HumanMessage(content=prompt)]
+        response = llm.invoke(messages)
+        response_text = response.content.strip()
 
-        response_text = result.stdout.strip()
+        # Extract JSON from response
         start = response_text.find('{')
         end = response_text.rfind('}') + 1
 
@@ -262,25 +268,21 @@ def respond_node(state: CompanionState) -> CompanionState:
             conversation += f"Assistant: {content}\n\n"
 
     # Create response prompt (shortened for faster processing)
-    prompt = f"""You are a supportive AI companion. Help the user based on this conversation:
+    system_prompt = "You are a supportive AI companion. Be warm, concise, and actionable. Use data provided above to give specific insights."
+    user_prompt = f"""Help the user based on this conversation:
 
 {conversation}
-
-Be warm, concise, and actionable. Use data provided above to give specific insights.
 
 Response:"""
 
     try:
-        result = subprocess.run(
-            ["ollama", "run", "llama3.1:8b", prompt],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',  # Fix Unicode errors with Arabic/special chars
-            errors='replace',   # Replace invalid chars instead of crashing
-            timeout=60  # Increased from 30 to 60 seconds
-        )
-
-        response = result.stdout.strip()
+        # Use LangChain ChatGroq for response generation
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
+        ]
+        response_obj = llm.invoke(messages)
+        response = response_obj.content.strip()
 
         # Remove any "Assistant:" prefix if model adds it
         if response.startswith("Assistant:"):

@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # LangChain imports
-from langchain_community.llms import Ollama
+from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -274,9 +274,9 @@ IMPORTANT: Return ONLY the JSON object, no additional text or formatting."""
         Initialize the Sentiment Analyzer.
 
         Args:
-            provider: LLM provider to use (ollama)
-            api_key: Not used for Ollama (runs locally)
-            model_name: Specific model to use (defaults to llama3.1:8b)
+            provider: LLM provider to use (ollama/groq)
+            api_key: GROQ_API_KEY from environment (for Groq)
+            model_name: Specific model to use (defaults to llama-3.1-70b-versatile)
             temperature: LLM temperature (0.0-1.0, lower = more consistent)
             max_retries: Maximum retry attempts on failure
         """
@@ -295,7 +295,7 @@ IMPORTANT: Return ONLY the JSON object, no additional text or formatting."""
 
         # Create the chain
         self.chain = self._create_chain()
-    
+
     def _initialize_llm(
         self,
         provider: LLMProvider,
@@ -304,13 +304,15 @@ IMPORTANT: Return ONLY the JSON object, no additional text or formatting."""
     ):
         """Initialize the LLM based on provider"""
         if provider == LLMProvider.OLLAMA:
-            # Default to llama3.1:8b (good balance of quality and speed)
-            default_model = "llama3.1:8b"
-            return Ollama(
+            # Use Groq instead of Ollama (faster, cloud-based)
+            import os
+            default_model = "llama-3.1-70b-versatile"
+            return ChatGroq(
                 model=model_name or default_model,
+                groq_api_key=api_key or os.getenv("GROQ_API_KEY"),
                 temperature=self.temperature,
-                num_predict=2048,
-                format="json"
+                max_tokens=2048,
+                model_kwargs={"response_format": {"type": "json_object"}}
             )
 
         else:

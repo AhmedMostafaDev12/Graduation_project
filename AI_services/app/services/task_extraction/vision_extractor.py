@@ -1,5 +1,4 @@
-from langchain_community.llms import Ollama
-from langchain.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
 from langchain.schema.messages import HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from PIL import Image
@@ -9,12 +8,12 @@ import os
 
 load_dotenv()
 
-# Use OLLAMA_VISION_MODEL for image/vision tasks
-VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "llava")
-
-vision_llm = Ollama(
-    model=VISION_MODEL,
-    format="json"
+# Use Groq Vision API for image/vision tasks (faster and cloud-based)
+vision_llm = ChatGroq(
+    model="llama-3.2-90b-vision-preview",
+    groq_api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.3,
+    max_tokens=2048
 )
 
 json_parser = JsonOutputParser()
@@ -54,16 +53,27 @@ Return a JSON object with this structure:
 Return ONLY valid JSON."""
 
     try:
-        # Invoke LangChain with multimodal input
-        response = vision_llm.invoke(prompt, images=[image_data])
-        
+        # Create multimodal message with image
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}
+                }
+            ]
+        )
+
+        # Invoke LangChain ChatGroq with multimodal input
+        response = vision_llm.invoke([message])
+
         # Parse JSON response
-        result = json_parser.parse(response)
+        result = json_parser.parse(response.content)
         tasks = result.get("tasks", [])
-        
+
         print(f"    Extracted {len(tasks)} tasks")
         return tasks
-        
+
     except Exception as e:
         print(f"    Error: {e}")
         return []

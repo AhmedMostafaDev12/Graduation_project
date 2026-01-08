@@ -1,4 +1,4 @@
-from langchain_community.llms import Ollama
+from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
@@ -20,11 +20,19 @@ class Task(BaseModel):
 class TaskList(BaseModel):
     tasks: List[Task]
 
-# Use OLLAMA_TEXT_MODEL for text processing
-TEXT_MODEL = os.getenv("OLLAMA_TEXT_MODEL", "llama3.1:8b")
+# Use Groq API for text processing (fast and cloud-based)
+llm = ChatGroq(
+    model="llama-3.1-70b-versatile",
+    groq_api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.3,
+    model_kwargs={"response_format": {"type": "json_object"}}
+)
 
-llm = Ollama(model=TEXT_MODEL, format="json")
-llm_text = Ollama(model=TEXT_MODEL)  # For translation without JSON format
+llm_text = ChatGroq(
+    model="llama-3.1-70b-versatile",
+    groq_api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.5
+)  # For translation without JSON format
 
 parser = PydanticOutputParser(pydantic_object=TaskList)
 prompt = PromptTemplate(template="""Extract all actionable tasks from the following text.

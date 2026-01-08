@@ -6,7 +6,7 @@ pydantic==2.5.0
 pydantic-settings==2.0.3 # Added for configuration management
 
 # AI/ML
-vosk==0.3.45
+vosk==0.3.45  # Will be replaced with Groq Whisper API
 moviepy==1.0.3
 unstructured==0.11.0
 opencv-python==4.8.1.78
@@ -15,6 +15,13 @@ Pillow==10.1.0
 google-generativeai==0.3.0
 requests==2.31.0
 langchain-postgres==0.0.4
+
+# LangChain & Groq (replaces local Ollama and Llava)
+langchain==0.1.0
+langchain-core==0.1.10
+langchain-community==0.0.13
+langchain-groq==0.0.1
+groq==0.4.1
 
 # OCR (for document_processor_ocr.py)
 pytesseract==0.3.10

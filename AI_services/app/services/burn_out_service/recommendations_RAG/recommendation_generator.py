@@ -20,7 +20,7 @@ from typing import Dict, List, Optional
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
-from langchain_community.llms import Ollama
+from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -64,7 +64,7 @@ class RecommendationEngineOutput(BaseModel):
 class GeneratorConfig:
     """Configuration for recommendation generator"""
     # LLM settings
-    llm_model: str = "llama3.1:8b"
+    llm_model: str = "llama-3.1-70b-versatile"
     temperature: float = 0.3
     max_output_tokens: int = 2048
 
@@ -72,7 +72,7 @@ class GeneratorConfig:
     def from_env(cls) -> 'GeneratorConfig':
         """Create config from environment variables"""
         return cls(
-            llm_model=os.getenv("OLLAMA_MODEL", "llama3.1:8b"),
+            llm_model=os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
             temperature=float(os.getenv("LLM_TEMPERATURE", "0.3")),
             max_output_tokens=int(os.getenv("LLM_MAX_TOKENS", "2048"))
         )
@@ -106,14 +106,14 @@ class RecommendationGenerator:
             google_api_key: Google API key (defaults to env variable)
         """
         self.config = config or GeneratorConfig.from_env()
-        self.ollama_model = google_api_key or os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 
-        # Initialize LLM (Ollama - runs locally, no API key needed)
-        self.llm = Ollama(
-            model=self.ollama_model,
+        # Initialize LLM (Groq - cloud-based, fast inference)
+        self.llm = ChatGroq(
+            model=self.config.llm_model,
+            groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=self.config.temperature,
-            num_predict=self.config.max_output_tokens,
-            format="json"
+            max_tokens=self.config.max_output_tokens,
+            model_kwargs={"response_format": {"type": "json_object"}}
         )
 
         # Initialize output parser
