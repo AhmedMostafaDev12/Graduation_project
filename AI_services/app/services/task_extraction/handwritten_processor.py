@@ -3,7 +3,8 @@ Handwritten Notes Processor
 ============================
 
 This processor is specifically designed for extracting tasks from handwritten notes.
-It uses OCR (Tesseract) to recognize handwritten text and then extracts tasks.
+It uses Groq Vision API (llama-3.2-90b-vision-preview) to directly extract tasks
+from handwritten images without needing OCR preprocessing.
 
 Best for:
 - Handwritten notes on paper (scanned or photographed)
@@ -14,21 +15,28 @@ Best for:
 Supported formats:
 - Images: PNG, JPG, JPEG, BMP, TIFF
 - PDF: Scanned documents with handwritten content
+
+Benefits over OCR (Tesseract):
+- Better handwriting recognition
+- Direct task extraction (no OCR preprocessing needed)
+- Understands context and formatting
+- Handles mixed handwriting styles
+- Supports multiple languages
 """
 
 from pathlib import Path
 from typing import List, Dict
 import tempfile
 import os
+import base64
 
-try:
-    import pytesseract
-    from PIL import Image, ImageEnhance, ImageFilter
-    OCR_AVAILABLE = True
-except ImportError:
-    OCR_AVAILABLE = False
-    print("Warning: pytesseract or PIL not installed. OCR will not work.")
-    print("Install with: pip install pytesseract pillow pdf2image")
+from PIL import Image
+from langchain_groq import ChatGroq
+from langchain.schema.messages import HumanMessage
+from langchain_core.output_parsers import JsonOutputParser
+from dotenv import load_dotenv
+
+load_dotenv()
 
 try:
     from pdf2image import convert_from_path
@@ -38,106 +46,107 @@ except ImportError:
     print("Warning: pdf2image not installed. PDF processing will be limited.")
     print("Install with: pip install pdf2image")
 
-from text_extractor import extract_task_from_text
-
 # Poppler path configuration for Windows
 POPPLER_PATH = r"C:\Users\USER\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
 
+# Initialize Groq Vision LLM
+vision_llm = ChatGroq(
+    model="llama-3.2-90b-vision-preview",
+    groq_api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.3,
+    max_tokens=2048
+)
 
-def preprocess_image_for_handwriting(image_path: str) -> Image.Image:
+json_parser = JsonOutputParser()
+
+
+def extract_tasks_from_handwritten_image(image_path: str) -> List[dict]:
     """
-    Preprocess image to improve OCR accuracy for handwritten text.
+    Extract tasks from handwritten image using Groq Vision API.
 
-    Applies:
-    - Grayscale conversion
-    - Contrast enhancement
-    - Sharpening
-    - Noise reduction
+    This directly processes the image without OCR preprocessing.
+    The vision model reads handwriting and extracts structured tasks.
 
     Args:
-        image_path: Path to image file
+        image_path: Path to handwritten image file
 
     Returns:
-        Preprocessed PIL Image
+        List of extracted tasks
     """
-    # Open image
-    image = Image.open(image_path)
+    print(f"  Processing handwritten image with Groq Vision: {Path(image_path).name}")
 
-    # Convert to grayscale
-    image = image.convert('L')
+    # Encode image to base64
+    with open(image_path, "rb") as image_file:
+        image_data = base64.b64encode(image_file.read()).decode()
 
-    # Enhance contrast
-    enhancer = ImageEnhance.Contrast(image)
-    image = enhancer.enhance(2.0)
+    # Create prompt for task extraction
+    prompt = """You are analyzing a handwritten note. Extract all tasks, to-dos, and action items.
 
-    # Sharpen
-    image = image.filter(ImageFilter.SHARPEN)
+Return a JSON object with this structure:
+{
+  "tasks": [
+    {
+      "title": "task title",
+      "description": "details from the note",
+      "assignee": "person assigned or null",
+      "deadline": "YYYY-MM-DD or null",
+      "priority": "URGENT|HIGH|MEDIUM|LOW",
+      "category": "assignment|meeting|exam|project|general"
+    }
+  ]
+}
 
-    # Reduce noise
-    image = image.filter(ImageFilter.MedianFilter(size=3))
-
-    return image
-
-
-def extract_text_from_handwritten_image(image_path: str, preprocess: bool = True) -> str:
-    """
-    Extract text from handwritten image using OCR.
-
-    Args:
-        image_path: Path to image file
-        preprocess: Whether to preprocess image for better OCR (default: True)
-
-    Returns:
-        Extracted text as string
-    """
-    if not OCR_AVAILABLE:
-        raise ImportError("pytesseract or PIL not installed")
+Important:
+- Read all handwritten text carefully
+- Extract each distinct task/to-do item
+- Infer priority from words like "urgent", "ASAP", "important"
+- Infer deadlines from dates mentioned
+- Return ONLY valid JSON, no additional text"""
 
     try:
-        print(f"  Processing handwritten image: {Path(image_path).name}")
+        # Create multimodal message with image
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}
+                }
+            ]
+        )
 
-        # Preprocess image if requested
-        if preprocess:
-            print("    Preprocessing image for handwriting recognition...")
-            image = preprocess_image_for_handwriting(image_path)
-        else:
-            image = Image.open(image_path)
+        # Invoke Groq Vision
+        response = vision_llm.invoke([message])
 
-        # Configure Tesseract for handwriting
-        # PSM 6: Assume a single uniform block of text
-        # PSM 4: Assume a single column of text of variable sizes
-        custom_config = r'--oem 3 --psm 6'
+        # Parse JSON response
+        result = json_parser.parse(response.content)
+        tasks = result.get("tasks", [])
 
-        print("    Running OCR with handwriting optimization...")
-        text = pytesseract.image_to_string(image, config=custom_config)
-
-        print(f"    Extracted {len(text)} characters")
-        return text.strip()
+        print(f"    Extracted {len(tasks)} tasks from handwriting")
+        return tasks
 
     except Exception as e:
-        print(f"    Error performing OCR: {e}")
-        return ""
+        print(f"    Error processing handwritten image: {e}")
+        return []
 
 
-def extract_text_from_handwritten_pdf(pdf_path: str, preprocess: bool = True) -> str:
+def extract_tasks_from_handwritten_pdf(pdf_path: str) -> List[dict]:
     """
-    Extract text from PDF containing handwritten content.
+    Extract tasks from PDF containing handwritten content.
 
     Pipeline:
     1. Convert PDF pages to images
-    2. Preprocess images for handwriting
-    3. Run OCR on each page
-    4. Combine all text
+    2. Process each image with Groq Vision
+    3. Combine all extracted tasks
 
     Args:
-        pdf_path: Path to PDF file
-        preprocess: Whether to preprocess images (default: True)
+        pdf_path: Path to PDF file with handwritten content
 
     Returns:
-        Combined extracted text from all pages
+        Combined list of tasks from all pages
     """
-    if not PDF2IMAGE_AVAILABLE or not OCR_AVAILABLE:
-        raise ImportError("pdf2image and pytesseract are required")
+    if not PDF2IMAGE_AVAILABLE:
+        raise ImportError("pdf2image is required for PDF processing. Install with: pip install pdf2image")
 
     print(f"  Processing handwritten PDF: {Path(pdf_path).name}")
 
@@ -150,14 +159,14 @@ def extract_text_from_handwritten_pdf(pdf_path: str, preprocess: bool = True) ->
 
         if os.path.exists(POPPLER_PATH):
             # High DPI for better handwriting recognition
-            images = convert_from_path(pdf_path, dpi=400, poppler_path=POPPLER_PATH)
+            images = convert_from_path(pdf_path, dpi=300, poppler_path=POPPLER_PATH)
         else:
-            images = convert_from_path(pdf_path, dpi=400)
+            images = convert_from_path(pdf_path, dpi=300)
 
         print(f"    Converted {len(images)} pages")
 
         # Process each page
-        all_text = []
+        all_tasks = []
 
         for i, image in enumerate(images, 1):
             print(f"    Processing page {i}/{len(images)}...")
@@ -166,17 +175,17 @@ def extract_text_from_handwritten_pdf(pdf_path: str, preprocess: bool = True) ->
             temp_image_path = os.path.join(temp_dir, f"page_{i}.png")
             image.save(temp_image_path, "PNG")
 
-            # Extract text from this page
-            page_text = extract_text_from_handwritten_image(temp_image_path, preprocess)
+            # Extract tasks from this page
+            page_tasks = extract_tasks_from_handwritten_image(temp_image_path)
 
-            if page_text:
-                all_text.append(f"--- Page {i} ---\n{page_text}")
+            # Add page number to each task
+            for task in page_tasks:
+                task["source_page"] = i
 
-        # Combine all text
-        combined_text = "\n\n".join(all_text)
-        print(f"  Total text extracted: {len(combined_text)} characters")
+            all_tasks.extend(page_tasks)
 
-        return combined_text
+        print(f"  Total tasks extracted from PDF: {len(all_tasks)}")
+        return all_tasks
 
     finally:
         # Clean up temp images
@@ -188,19 +197,16 @@ def extract_text_from_handwritten_pdf(pdf_path: str, preprocess: bool = True) ->
             pass
 
 
-def process_handwritten_notes(file_path: str, preprocess: bool = True, translate: bool = True) -> List[dict]:
+def process_handwritten_notes(file_path: str) -> List[dict]:
     """
     Main function to extract tasks from handwritten notes.
 
-    Pipeline:
-    1. Detect file type (image or PDF)
-    2. Apply OCR with handwriting optimization
-    3. Extract tasks from recognized text
+    Uses Groq Vision API to directly read and extract tasks from:
+    - Handwritten images (PNG, JPG, JPEG, BMP, TIFF)
+    - PDFs with handwritten content
 
     Args:
         file_path: Path to handwritten notes (image or PDF)
-        preprocess: Whether to preprocess images for better OCR (default: True)
-        translate: Whether to translate non-English text (default: True)
 
     Returns:
         List of extracted tasks
@@ -214,54 +220,32 @@ def process_handwritten_notes(file_path: str, preprocess: bool = True, translate
     ext = file_path_obj.suffix.lower()
 
     print(f"\n{'='*60}")
-    print("HANDWRITTEN NOTES PROCESSOR")
+    print("HANDWRITTEN NOTES PROCESSOR (Groq Vision)")
     print(f"{'='*60}")
     print(f"File: {file_path_obj.name}")
     print(f"Type: {ext}")
-    print(f"Preprocessing: {'Enabled' if preprocess else 'Disabled'}")
-    print(f"Translation: {'Enabled' if translate else 'Disabled'}")
+    print(f"Model: llama-3.2-90b-vision-preview")
     print(f"{'='*60}\n")
 
     try:
-        # Extract text based on file type
+        # Process based on file type
         if ext == '.pdf':
-            if not PDF2IMAGE_AVAILABLE or not OCR_AVAILABLE:
-                print("Error: PDF processing requires pdf2image and pytesseract")
-                print("Install with: pip install pdf2image pytesseract pillow")
+            if not PDF2IMAGE_AVAILABLE:
+                print("Error: PDF processing requires pdf2image")
+                print("Install with: pip install pdf2image")
                 return []
 
-            text = extract_text_from_handwritten_pdf(str(file_path), preprocess)
+            tasks = extract_tasks_from_handwritten_pdf(str(file_path))
 
         elif ext in ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif']:
-            if not OCR_AVAILABLE:
-                print("Error: Image processing requires pytesseract and PIL")
-                print("Install with: pip install pytesseract pillow")
-                return []
-
-            text = extract_text_from_handwritten_image(str(file_path), preprocess)
+            tasks = extract_tasks_from_handwritten_image(str(file_path))
 
         else:
             print(f"Unsupported file type: {ext}")
             print("Supported: PDF, PNG, JPG, JPEG, BMP, TIFF")
             return []
 
-        # Check if we got any text
-        if not text or len(text.strip()) < 5:
-            print("  No text extracted from handwritten notes")
-            print("  Tips:")
-            print("    - Ensure the image is clear and well-lit")
-            print("    - Try scanning at higher resolution (300+ DPI)")
-            print("    - Make sure handwriting is legible")
-            return []
-
-        print(f"\n  OCR Results:")
-        print(f"    Extracted {len(text)} characters")
-        print(f"    Extracted {len(text.split())} words")
-
-        # Extract tasks from text
-        print("\n  Extracting tasks from handwritten text...")
-        tasks, enhanced_text = extract_task_from_text(text, translate=translate)
-
+        # Display results
         print(f"\n  {'='*60}")
         print(f"  RESULTS")
         print(f"  {'='*60}")
@@ -271,6 +255,10 @@ def process_handwritten_notes(file_path: str, preprocess: bool = True, translate
             print(f"\n  Tasks extracted:")
             for i, task in enumerate(tasks, 1):
                 print(f"    {i}. {task.get('title', 'Untitled')}")
+                if task.get('deadline'):
+                    print(f"       Due: {task['deadline']}")
+                if task.get('priority'):
+                    print(f"       Priority: {task['priority']}")
 
         return tasks
 
@@ -284,31 +272,23 @@ def process_handwritten_notes(file_path: str, preprocess: bool = True, translate
 # Installation and configuration instructions
 SETUP_INSTRUCTIONS = """
 =============================================================================
-HANDWRITTEN NOTES PROCESSOR - SETUP INSTRUCTIONS
+HANDWRITTEN NOTES PROCESSOR - SETUP INSTRUCTIONS (Groq Vision)
 =============================================================================
 
-This processor is optimized for extracting tasks from handwritten content.
+This processor uses Groq Vision API to directly extract tasks from
+handwritten images without needing OCR installation.
 
 REQUIREMENTS:
 -------------
 
 1. Python Packages:
-   pip install pytesseract pillow pdf2image
+   pip install langchain-groq groq pillow pdf2image
 
-2. Tesseract OCR Engine:
+2. Groq API Key:
+   - Get your free API key from: https://console.groq.com
+   - Add to .env file: GROQ_API_KEY="your_key_here"
 
-   Windows:
-   - Download from: https://github.com/UB-Mannheim/tesseract/wiki
-   - Install to default location (C:\\Program Files\\Tesseract-OCR)
-   - Add to PATH or set pytesseract.pytesseract.tesseract_cmd
-
-   Linux:
-   sudo apt-get install tesseract-ocr
-
-   macOS:
-   brew install tesseract
-
-3. Poppler (for PDF processing):
+3. Poppler (for PDF processing only):
 
    Windows:
    - Download from: https://github.com/oschwartz10612/poppler-windows/releases
@@ -332,24 +312,30 @@ tasks = process_handwritten_notes("notes.jpg")
 # Process scanned PDF with handwriting
 tasks = process_handwritten_notes("scanned_notes.pdf")
 
-# Disable image preprocessing (if OCR is worse with it)
-tasks = process_handwritten_notes("notes.jpg", preprocess=False)
 
-# Skip translation (for English handwriting only)
-tasks = process_handwritten_notes("notes.jpg", translate=False)
+BENEFITS OVER OCR (Tesseract):
+-------------------------------
+
+✅ No Tesseract installation needed
+✅ Better handwriting recognition
+✅ Understands context (not just text extraction)
+✅ Direct task extraction (no intermediate text step)
+✅ Handles messy/unclear handwriting better
+✅ Multi-language support built-in
+✅ Cloud-based (no local resources needed)
 
 
 TIPS FOR BEST RESULTS:
 ----------------------
 
 1. Image Quality:
-   - Use high resolution (300+ DPI for scans)
-   - Ensure good lighting (no shadows)
+   - Use good lighting (no shadows)
    - Avoid blurry images
+   - Higher resolution is better (300+ DPI for scans)
 
 2. Handwriting:
-   - Write clearly and legibly
-   - Use good contrast (dark pen on white paper)
+   - Write clearly (but doesn't need to be perfect)
+   - Dark ink on white/light paper works best
    - Avoid overlapping text
 
 3. Scanning:
@@ -357,9 +343,9 @@ TIPS FOR BEST RESULTS:
    - Use scanner bed instead of camera when possible
    - Clean the paper (no creases or stains)
 
-4. Preprocessing:
-   - Usually improves accuracy
-   - Disable if results are worse (preprocess=False)
+4. Cost:
+   - Groq free tier: 14,400 requests/day
+   - Very affordable for production use
 
 =============================================================================
 """
@@ -367,12 +353,7 @@ TIPS FOR BEST RESULTS:
 
 if __name__ == "__main__":
     print(SETUP_INSTRUCTIONS)
-
-    # Test if everything is installed
-    if OCR_AVAILABLE and PDF2IMAGE_AVAILABLE:
-        print("\n All dependencies are installed!")
-        print("\nYou can now use:")
-        print("  from handwritten_processor import process_handwritten_notes")
-        print("  tasks = process_handwritten_notes('your_handwritten_notes.jpg')")
-    else:
-        print("\n Some dependencies are missing. See instructions above.")
+    print("\n✅ Groq Vision handwriting processor ready!")
+    print("\nYou can now use:")
+    print("  from handwritten_processor import process_handwritten_notes")
+    print("  tasks = process_handwritten_notes('your_handwritten_notes.jpg')")
