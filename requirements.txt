@@ -6,8 +6,9 @@ pydantic==2.5.0
 pydantic-settings==2.0.3 # Added for configuration management
 
 # AI/ML
-vosk==0.3.45  # Will be replaced with Groq Whisper API
-moviepy==1.0.3
+# vosk==0.3.45  # Replaced with AssemblyAI
+assemblyai==0.35.0  # Speech-to-text transcription (replaces Vosk)
+moviepy==1.0.3  # Still needed for audio format conversion
 unstructured==0.11.0
 opencv-python==4.8.1.78
 PyMuPDF==1.23.8

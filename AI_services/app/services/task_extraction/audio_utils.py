@@ -1,5 +1,8 @@
 """
-Audio utility functions for converting audio files to Vosk-compatible format.
+Audio utility functions for audio file format conversion.
+
+Note: AssemblyAI accepts most audio formats directly, so conversion is typically
+not needed. These utilities are kept for edge cases where format conversion helps.
 """
 import os
 from moviepy.editor import AudioFileClip
@@ -7,7 +10,10 @@ from moviepy.editor import AudioFileClip
 
 def convert_to_wav(input_path: str, output_path: str = None) -> str:
     """
-    Convert audio file to WAV format (16kHz mono) for Vosk processing.
+    Convert audio file to WAV format (16kHz mono).
+
+    Note: AssemblyAI accepts most formats directly, so this is typically not needed.
+    Kept for edge cases or preprocessing requirements.
 
     Args:
         input_path: Path to input audio file (mp3, m4a, etc.)
