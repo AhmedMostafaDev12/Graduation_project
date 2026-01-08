@@ -23,9 +23,9 @@ langchain-community==0.0.13
 langchain-groq==0.0.1
 groq==0.4.1
 
-# OCR (for document_processor_ocr.py)
-pytesseract==0.3.10
-pdf2image==1.16.3
+# PDF Processing (for handwritten_processor.py)
+# pytesseract==0.3.10  # No longer needed - replaced with Groq Vision
+pdf2image==1.16.3  # Still needed for PDF to image conversion
 
 # Task Queue
 celery==5.3.4
