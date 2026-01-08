@@ -5,20 +5,94 @@ __pycache__/
 venv/
 env/
 .env
+*.egg-info/
+dist/
+*.log
 
 # Database
 *.db
 *.sqlite
+*.sqlite3
 
 # IDE
 .vscode/
 .idea/
 .DS_Store
+*.swp
+*.swo
 
 # Flutter
 .dart_tool/
 build/
 
-# ML
+# ML Models (LARGE FILES - DO NOT COMMIT)
 *.h5
 *.pkl
+*.pt
+*.pth
+*.onnx
+*.pb
+*.tflite
+
+# Vosk Models (2GB+ - DO NOT COMMIT)
+**/vosk-model*/
+**/vosk-model-*/**
+AI_services/app/services/task_extraction/vosk-model*/
+
+# Vector Databases & Embeddings
+**/chroma_db/
+**/vector_db/
+**/chromadb/
+**/.chroma/
+
+# Uploads & User Data
+**/uploads/
+**/upload_files/
+**/temp_files/
+**/tmp/
+AI_services/app/services/notebook_library/uploads/
+AI_services/app/services/task_extraction/utils/uploads/
+
+# Figures & Images (if not documentation)
+AI_services/figures/
+**/figures/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+# But keep documentation images if needed - uncomment if you need them:
+# !docs/**/*.jpg
+# !docs/**/*.png
+
+# Notebooks Data
+**/notebooks.json
+
+# Cache & Temporary
+.cache/
+*.cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.tmp
+temp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Large Binary Files
+*.bin
+*.mdl
+*.fst
+*.dubm
+*.ie
+*.mat
+*.carpa
+
+# Test Outputs
+test_output/
+test_results/
+**/test_*.txt
+**/test_*.pdf
