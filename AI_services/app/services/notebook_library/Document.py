@@ -50,11 +50,11 @@ class DocumentProcessor:
         Uses Voyage-3 embeddings for best document search quality.
         """
         self.embeddings = VoyageAIEmbeddings(
-            model="voyage-3",  # Best quality for document search
+            model="voyage-3-large",  # Free tier: 200M tokens/month, 2048 dimensions
             voyage_api_key=os.getenv("VOYAGE_API_KEY")
         )
         self.vector_store = self._initialize_pgvector_store()
-        logger.info("DocumentProcessor initialized with PgVector + Voyage-3 embeddings")
+        logger.info("DocumentProcessor initialized with PgVector + Voyage-3-large embeddings")
 
     def _initialize_pgvector_store(self) -> PGVector:
         """

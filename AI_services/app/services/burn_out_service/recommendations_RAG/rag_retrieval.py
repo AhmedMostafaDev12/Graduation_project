@@ -93,9 +93,9 @@ class RAGRetrievalService:
         """
         self.config = config or RAGConfig.from_env()
 
-        # Initialize embeddings with Voyage-3-lite (fast & cost-effective)
+        # Initialize embeddings with Voyage-3-large (free tier: 200M tokens/month)
         self.embeddings = VoyageAIEmbeddings(
-            model="voyage-3-lite",  # Fast, cost-effective for recommendation search
+            model="voyage-3-large",  # Free tier, best quality, 2048 dimensions
             voyage_api_key=os.getenv("VOYAGE_API_KEY")
         )
 
