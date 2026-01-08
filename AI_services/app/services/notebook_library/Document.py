@@ -5,11 +5,12 @@ from collections import OrderedDict
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyMuPDFLoader, UnstructuredFileLoader
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_voyageai import VoyageAIEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from langchain_core.documents import Document
+import os
 
 from app.config import settings
 
@@ -46,12 +47,14 @@ class DocumentProcessor:
     def __init__(self):
         """
         Initialize the document processor with a single PgVector store.
+        Uses Voyage-3 embeddings for best document search quality.
         """
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-mpnet-base-v2"
+        self.embeddings = VoyageAIEmbeddings(
+            model="voyage-3",  # Best quality for document search
+            voyage_api_key=os.getenv("VOYAGE_API_KEY")
         )
         self.vector_store = self._initialize_pgvector_store()
-        logger.info("DocumentProcessor initialized with PgVector")
+        logger.info("DocumentProcessor initialized with PgVector + Voyage-3 embeddings")
 
     def _initialize_pgvector_store(self) -> PGVector:
         """

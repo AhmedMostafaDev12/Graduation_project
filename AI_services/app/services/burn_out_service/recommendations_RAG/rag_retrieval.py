@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_voyageai import VoyageAIEmbeddings
 from langchain_postgres import PGVector
 from langchain_core.documents import Document
 
@@ -93,11 +93,10 @@ class RAGRetrievalService:
         """
         self.config = config or RAGConfig.from_env()
 
-        # Initialize embeddings (same as populate_strategies.py)
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-mpnet-base-v2",
-            model_kwargs={'device': 'cpu'},
-            encode_kwargs={'normalize_embeddings': True}
+        # Initialize embeddings with Voyage-3-lite (fast & cost-effective)
+        self.embeddings = VoyageAIEmbeddings(
+            model="voyage-3-lite",  # Fast, cost-effective for recommendation search
+            voyage_api_key=os.getenv("VOYAGE_API_KEY")
         )
 
         # Initialize vector store
