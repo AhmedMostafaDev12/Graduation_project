@@ -95,7 +95,7 @@ class RAGRetrievalService:
 
         # Initialize embeddings with Voyage-3-large (free tier: 200M tokens/month)
         self.embeddings = VoyageAIEmbeddings(
-            model="voyage-3-large",  # Free tier, best quality, 2048 dimensions
+            model="voyage-3-large",  # Free tier, best quality, 1024 dimensions
             voyage_api_key=os.getenv("VOYAGE_API_KEY")
         )
 

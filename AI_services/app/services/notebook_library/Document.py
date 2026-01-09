@@ -50,7 +50,7 @@ class DocumentProcessor:
         Uses Voyage-3 embeddings for best document search quality.
         """
         self.embeddings = VoyageAIEmbeddings(
-            model="voyage-3-large",  # Free tier: 200M tokens/month, 2048 dimensions
+            model="voyage-3-large",  # Free tier: 200M tokens/month, 1024 dimensions
             voyage_api_key=os.getenv("VOYAGE_API_KEY")
         )
         self.vector_store = self._initialize_pgvector_store()

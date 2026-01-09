@@ -26,7 +26,7 @@ COLLECTION_NAME = "burnout_strategies"
 
 # Initialize embeddings with Voyage-3-large (same as rag_retrieval.py)
 embeddings = VoyageAIEmbeddings(
-    model="voyage-3-large",  # Free tier: 200M tokens/month, 2048 dimensions
+    model="voyage-3-large",  # Free tier: 200M tokens/month, 1024 dimensions
     voyage_api_key=os.getenv("VOYAGE_API_KEY")
 )
 
@@ -248,7 +248,7 @@ def populate_vector_database():
         print(f"\n Database Stats:")
         print(f"   - Total strategies: {len(documents)}")
         print(f"   - Embedding model: voyage-3-large (Voyage AI)")
-        print(f"   - Vector dimensions: 2048")
+        print(f"   - Vector dimensions: 1024")
         print(f"   - Collection: {COLLECTION_NAME}")
 
         # Test retrieval
