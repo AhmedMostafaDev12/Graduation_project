@@ -11,14 +11,9 @@ Run once to initialize the database with strategies.
 import os
 import sys
 from pathlib import Path
-
-# Force PyTorch backend for sentence-transformers (avoid TensorFlow tf_keras issue)
-os.environ['SENTENCE_TRANSFORMERS_HOME'] = os.path.expanduser('~/.cache/sentence_transformers')
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-
 from dotenv import load_dotenv
 from langchain_postgres.vectorstores import PGVector
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_voyageai import VoyageAIEmbeddings
 from langchain.schema import Document
 import re
 
@@ -29,11 +24,10 @@ load_dotenv()
 VECTOR_DB_URL = os.getenv("VECTOR_DB_URL")
 COLLECTION_NAME = "burnout_strategies"
 
-# Initialize embeddings (same as rag_retrieval.py)
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-mpnet-base-v2",
-    model_kwargs={'device': 'cpu'},
-    encode_kwargs={'normalize_embeddings': True}
+# Initialize embeddings with Voyage-3-large (same as rag_retrieval.py)
+embeddings = VoyageAIEmbeddings(
+    model="voyage-3-large",  # Free tier: 200M tokens/month, 2048 dimensions
+    voyage_api_key=os.getenv("VOYAGE_API_KEY")
 )
 
 
@@ -253,8 +247,8 @@ def populate_vector_database():
         print("\n SUCCESS! Vector database populated with strategies!")
         print(f"\n Database Stats:")
         print(f"   - Total strategies: {len(documents)}")
-        print(f"   - Embedding model: sentence-transformers/all-mpnet-base-v2")
-        print(f"   - Vector dimensions: 768")
+        print(f"   - Embedding model: voyage-3-large (Voyage AI)")
+        print(f"   - Vector dimensions: 2048")
         print(f"   - Collection: {COLLECTION_NAME}")
 
         # Test retrieval
