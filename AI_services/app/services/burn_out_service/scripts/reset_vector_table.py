@@ -2,7 +2,7 @@
 Reset Vector Database Table
 ============================
 
-Drops the existing burnout_strategies collection and recreates it with correct dimensions.
+Drops and recreates the langchain_pg_embedding table with correct dimensions.
 Run this when switching embedding models (e.g., from sentence-transformers to Voyage AI).
 
 Usage:
@@ -19,7 +19,7 @@ VECTOR_DB_URL = os.getenv("VECTOR_DB_URL")
 COLLECTION_NAME = "burnout_strategies"
 
 def reset_vector_table():
-    """Drop and recreate the vector collection table."""
+    """Drop and recreate the vector embedding table."""
 
     print("=" * 80)
     print("RESET VECTOR DATABASE TABLE")
@@ -41,36 +41,24 @@ def reset_vector_table():
         engine = create_engine(connection_string)
 
         with engine.connect() as conn:
-            # Drop the langchain_pg_embedding table entries for this collection
-            print(f"\nDropping existing '{COLLECTION_NAME}' collection...")
+            print(f"\nDropping existing vector tables...")
 
-            # Delete from langchain_pg_embedding table
-            result = conn.execute(
-                text("""
-                    DELETE FROM langchain_pg_embedding
-                    WHERE collection_id = (
-                        SELECT uuid FROM langchain_pg_collection
-                        WHERE name = :collection_name
-                    )
-                """),
-                {"collection_name": COLLECTION_NAME}
-            )
+            # Drop tables in correct order (embedding first due to foreign key)
+            conn.execute(text("DROP TABLE IF EXISTS langchain_pg_embedding CASCADE"))
+            print("   Dropped: langchain_pg_embedding")
 
-            deleted_rows = result.rowcount
-            print(f"   Deleted {deleted_rows} embedding entries")
-
-            # Delete from langchain_pg_collection table
-            result = conn.execute(
-                text("DELETE FROM langchain_pg_collection WHERE name = :collection_name"),
-                {"collection_name": COLLECTION_NAME}
-            )
+            conn.execute(text("DROP TABLE IF EXISTS langchain_pg_collection CASCADE"))
+            print("   Dropped: langchain_pg_collection")
 
             conn.commit()
 
-            print(f"\n[OK] Collection '{COLLECTION_NAME}' has been reset!")
+            print(f"\n[OK] Vector tables have been dropped!")
+            print("\nThe tables will be automatically recreated with correct dimensions")
+            print("when you run populate_strategies.py")
+
             print("\nNext steps:")
             print("   1. Run: python populate_strategies.py")
-            print("   2. This will recreate the collection with Voyage AI embeddings (1024 dimensions)")
+            print("   2. This will recreate tables with Voyage AI embeddings (1024 dimensions)")
             print("\n" + "=" * 80)
 
     except Exception as e:
@@ -79,10 +67,18 @@ def reset_vector_table():
         print("   1. Check VECTOR_DB_URL is correct in .env")
         print("   2. Verify PostgreSQL is running")
         print("   3. Check database permissions")
+        print("   4. Make sure no applications are using the tables")
 
 if __name__ == "__main__":
     try:
-        reset_vector_table()
+        print("\nWARNING: This will delete all existing vector embeddings!")
+        response = input("Are you sure you want to continue? (yes/no): ")
+
+        if response.lower() in ['yes', 'y']:
+            reset_vector_table()
+        else:
+            print("\nOperation cancelled.")
+
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
     except Exception as e:
