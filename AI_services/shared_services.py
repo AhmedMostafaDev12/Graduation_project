@@ -75,14 +75,39 @@ class TaskService:
             except:
                 due_date = None
 
+        # Parse start_time if it's a string
+        start_time = task_data.get("start_time")
+        if isinstance(start_time, str):
+            try:
+                start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            except:
+                start_time = None
+
+        # Parse end_time if it's a string
+        end_time = task_data.get("end_time")
+        if isinstance(end_time, str):
+            try:
+                end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+            except:
+                end_time = None
+
         task = models.Task(
             user_id=user_id,
             title=task_data.get("title"),
             description=task_data.get("description", ""),
+            task_type=task_data.get("task_type", "task"),
             status=task_data.get("status", "Todo"),
             priority=task_data.get("priority", "Medium"),
+            category=task_data.get("category"),
             due_date=due_date,
-            tags=task_data.get("tags", [])
+            start_time=start_time,
+            end_time=end_time,
+            assigned_to=task_data.get("assigned_to"),
+            can_delegate=task_data.get("can_delegate", True),
+            estimated_hours=task_data.get("estimated_hours"),
+            is_recurring=task_data.get("is_recurring", False),
+            is_optional=task_data.get("is_optional", False)
+            # Note: tags field doesn't exist in Task model, so we skip it
         )
 
         db.add(task)
@@ -95,7 +120,12 @@ class TaskService:
             "description": task.description,
             "status": task.status,
             "priority": task.priority,
+            "category": task.category,
             "due_date": task.due_date.isoformat() if task.due_date else None,
+            "start_time": task.start_time.isoformat() if task.start_time else None,
+            "end_time": task.end_time.isoformat() if task.end_time else None,
+            "estimated_hours": task.estimated_hours,
+            "assigned_to": task.assigned_to,
             "created_at": task.created_at.isoformat() if hasattr(task, 'created_at') else None,
             "tags": task.tags if hasattr(task, 'tags') else []
         }
@@ -180,7 +210,7 @@ class BurnoutService:
         Used by: AI Companion
         """
         try:
-            from app.services.burn_out_service.core.workload_analyzer import WorkloadAnalyzer
+            from app.services.burn_out_service.Analysis_engine_layer.Workload_analyzer import WorkloadAnalyzer
 
             analyzer = WorkloadAnalyzer(db)
             breakdown = analyzer.get_workload_breakdown(user_id)

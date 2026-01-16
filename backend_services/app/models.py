@@ -7,8 +7,9 @@ from app.database import Base
 
 class User(Base):
     __tablename__ = "users"
-    
-    # personal data 
+    __table_args__ = {'extend_existing': True}
+
+    # personal data
     id                      = Column(Integer,                   nullable=False, primary_key=True)
     email                   = Column(String,                    nullable=True, unique=True)
     password                = Column(String,                    nullable=True ) 
@@ -25,31 +26,37 @@ class User(Base):
 
 class AuthProvider(Base):
     __tablename__ = "auth_providers"
+    __table_args__ = {'extend_existing': True}
 
     id          = Column(Integer, primary_key=True)
     user_id     = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     provider    = Column(String, nullable=False)  # google / facebook / apple / email
-    email       = Column(String, nullable=False) 
-    
-    owner = relationship("User")
+    email       = Column(String, nullable=False)
+
+    # Relationship removed to avoid SQLAlchemy registry conflicts when models imported across services
+    # owner = relationship("User", lazy='select', viewonly=True)
 
 
 class Integration(Base):
     __tablename__ = "integrations"
+    __table_args__ = {'extend_existing': True}
+
     id              = Column(Integer, primary_key=True)
     user_id         = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     service         = Column(String)    # google_tasks, google_classroom, zoom_meetings, trello_cards
     # service_id      = Column(String, nullable=True, unique=True)
-    
+
     access_token    = Column(String)
     refresh_token   = Column(String)
     expiry          = Column(DateTime)
 
-    owner = relationship("User")
+    # Relationship removed to avoid SQLAlchemy registry conflicts when models imported across services
+    # owner = relationship("User", lazy='select', viewonly=True)
 
 
 class Task(Base):
     __tablename__ = "tasks"
+    __table_args__ = {'extend_existing': True}
 
     # Primary key
     id = Column(Integer, primary_key=True)
@@ -96,12 +103,14 @@ class Task(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    owner = relationship("User")
+    # Relationship removed to avoid SQLAlchemy registry conflicts when models imported across services
+    # owner = relationship("User", lazy='select', viewonly=True)
 
 
 
 class TempTrelloToken(Base):
     __tablename__ = "temp_trello_tokens"
+    __table_args__ = {'extend_existing': True}
 
     id                  = Column(Integer, primary_key=True, index=True)
     user_id             = Column(Integer, ForeignKey("users.id"), nullable=False)

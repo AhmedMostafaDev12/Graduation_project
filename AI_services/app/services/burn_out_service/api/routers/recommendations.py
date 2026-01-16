@@ -10,6 +10,16 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime
 import time
+import sys
+from pathlib import Path
+
+# Add backend_services to path for authentication
+backend_path = Path(__file__).parent.parent.parent.parent.parent.parent / "backend_services"
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
+from app.oauth2 import get_current_user
+from app.models import User
 
 from api.dependencies import get_db
 from api.schemas.recommendation_schemas import (
@@ -36,14 +46,16 @@ router = APIRouter(prefix="/api/recommendations", tags=["Recommendations"])
 # RECOMMENDATIONS ENDPOINTS
 # ============================================================================
 
-@router.get("/{user_id}", response_model=RecommendationResponse)
+@router.post("/generate", response_model=RecommendationResponse)
 async def get_recommendations(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     include_events: bool = Query(True, description="Include calendar-specific recommendations"),
     db: Session = Depends(get_db)
 ):
     """
-    Get AI-generated personalized recommendations for a user.
+    Get AI-generated personalized recommendations for the authenticated user.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     This endpoint:
     1. Retrieves user's latest burnout analysis
@@ -64,6 +76,7 @@ async def get_recommendations(
         - Generation metadata
     """
     try:
+        user_id = current_user.id
         start_time = time.time()
 
         # Get latest burnout analysis
@@ -103,7 +116,11 @@ async def get_recommendations(
 
         # Get calendar events and tasks if requested
         calendar_events = [] if include_events else None
-        task_list = []  # Would come from task integration
+
+        # Retrieve user's tasks from database (already formatted as dicts)
+        from integrations.task_database_integration import TaskDatabaseService
+        task_integration = TaskDatabaseService(session=db)
+        task_list = task_integration.get_user_tasks(user_id, include_completed=False)
 
         # Generate recommendations
         recommendations = recommendation_engine.generate_recommendations(
@@ -143,12 +160,19 @@ async def get_recommendations(
                     related_event = getattr(rec, 'related_event', None)
                     related_task = getattr(rec, 'related_task', None)
 
+                # Normalize priority to allowed values (HIGH, MEDIUM, LOW)
+                priority_normalized = priority.upper() if priority else 'MEDIUM'
+                if priority_normalized == 'CRITICAL':
+                    priority_normalized = 'HIGH'
+                elif priority_normalized not in ('HIGH', 'MEDIUM', 'LOW'):
+                    priority_normalized = 'MEDIUM'
+
                 # Save recommendation to database
                 db_recommendation = Recommendation(
                     user_id=user_id,
                     burnout_analysis_id=latest_analysis.id,
                     title=title,
-                    priority=priority,
+                    priority=priority_normalized,
                     description=description,
                     action_steps=action_steps,
                     expected_impact=expected_impact,
@@ -168,7 +192,7 @@ async def get_recommendations(
                 recommendation_items.append(RecommendationItem(
                     recommendation_id=db_recommendation.id,
                     title=title,
-                    priority=priority,
+                    priority=priority_normalized,
                     description=description,
                     action_steps=action_steps,
                     expected_impact=expected_impact,
@@ -201,26 +225,28 @@ async def get_recommendations(
         raise HTTPException(status_code=500, detail=f"Failed to generate recommendations: {str(e)}")
 
 
-@router.get("/{user_id}/history")
+@router.get("/history")
 async def get_recommendation_history(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     include_unapplied: bool = Query(True, description="Include unapplied recommendations"),
     db: Session = Depends(get_db)
 ):
     """
-    Get recommendation history for a user.
+    Get recommendation history for the authenticated user.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns all recommendations generated for the user, along with
     their application status and effectiveness data.
 
     Parameters:
-        - user_id: User ID
         - include_unapplied: Whether to include recommendations that haven't been applied
 
     Returns:
         List of recommendations with application details
     """
     try:
+        user_id = current_user.id
         query = db.query(Recommendation).filter(
             Recommendation.user_id == user_id
         )
@@ -273,23 +299,23 @@ async def get_recommendation_history(
         raise HTTPException(status_code=500, detail=f"Failed to get recommendation history: {str(e)}")
 
 
-@router.get("/{user_id}/pending")
+@router.get("/pending")
 async def get_pending_recommendations(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get all unapplied recommendations for a user.
+    Get all unapplied recommendations for the authenticated user.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns recommendations that have been generated but not yet applied.
-
-    Parameters:
-        - user_id: User ID
 
     Returns:
         List of unapplied recommendations
     """
     try:
+        user_id = current_user.id
         # Query recommendations with no application record
         pending_recommendations = db.query(Recommendation).filter(
             Recommendation.user_id == user_id
@@ -328,10 +354,13 @@ async def get_pending_recommendations(
 async def submit_recommendation_feedback(
     recommendation_id: int,
     request: RecommendationFeedbackRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Submit feedback on a recommendation's effectiveness.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     This helps improve future recommendations by learning which
     suggestions are most helpful for users.
@@ -344,22 +373,23 @@ async def submit_recommendation_feedback(
         Confirmation of feedback receipt
     """
     try:
+        user_id = current_user.id
         # Verify recommendation exists and belongs to user
         recommendation = db.query(Recommendation).filter(
             Recommendation.id == recommendation_id,
-            Recommendation.user_id == request.user_id
+            Recommendation.user_id == user_id
         ).first()
 
         if not recommendation:
             raise HTTPException(
                 status_code=404,
-                detail=f"Recommendation {recommendation_id} not found for user {request.user_id}"
+                detail=f"Recommendation {recommendation_id} not found for user {user_id}"
             )
 
         # Create feedback record
         feedback = RecommendationFeedback(
             recommendation_id=recommendation_id,
-            user_id=request.user_id,
+            user_id=user_id,
             helpful=request.helpful,
             comments=request.notes,
             submitted_at=datetime.utcnow()

@@ -276,7 +276,7 @@ IMPORTANT: Return ONLY the JSON object, no additional text or formatting."""
         Args:
             provider: LLM provider to use (ollama/groq)
             api_key: GROQ_API_KEY from environment (for Groq)
-            model_name: Specific model to use (defaults to llama-3.1-70b-versatile)
+            model_name: Specific model to use (defaults to llama-3.3-70b-versatile)
             temperature: LLM temperature (0.0-1.0, lower = more consistent)
             max_retries: Maximum retry attempts on failure
         """
@@ -306,7 +306,8 @@ IMPORTANT: Return ONLY the JSON object, no additional text or formatting."""
         if provider == LLMProvider.OLLAMA:
             # Use Groq instead of Ollama (faster, cloud-based)
             import os
-            default_model = "llama-3.1-70b-versatile"
+            # Updated to use supported Groq model (llama-3.1-70b-versatile was decommissioned)
+            default_model = "llama-3.3-70b-versatile"
             return ChatGroq(
                 model=model_name or default_model,
                 groq_api_key=api_key or os.getenv("GROQ_API_KEY"),

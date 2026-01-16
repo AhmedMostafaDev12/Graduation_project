@@ -54,6 +54,21 @@ if str(notebook_library_dir) not in sys.path:
 if str(ai_companion_dir) not in sys.path:
     sys.path.insert(0, str(ai_companion_dir))
 
+# Debug: Print sys.path to verify paths are added
+print("\n[STARTUP] Python path configuration:")
+print(f"  burnout_service_dir: {burnout_service_dir}")
+print(f"  Analysis_engine_layer should be at: {burnout_service_dir / 'Analysis_engine_layer'}")
+print(f"  Path exists: {(burnout_service_dir / 'Analysis_engine_layer').exists()}")
+
+# Test import immediately after path setup
+try:
+    from Analysis_engine_layer import UserMetrics
+    print("[STARTUP] ✓ Successfully imported Analysis_engine_layer.UserMetrics")
+except ImportError as e:
+    print(f"[STARTUP] ✗ Failed to import Analysis_engine_layer: {e}")
+    import traceback
+    traceback.print_exc()
+
 # Load environment variables from multiple locations
 # Load from parent directory first
 load_dotenv(parent_dir / ".env")

@@ -23,7 +23,16 @@ from typing import Optional, List
 from pathlib import Path
 import tempfile
 import os
+import sys
 from sqlalchemy.orm import Session
+
+# Add backend_services to path for authentication
+backend_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'backend_services')
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
+from app.oauth2 import get_current_user
+from app.models import User
 
 from unified_task_extractor import (
     extract_tasks_from_file,
@@ -208,32 +217,34 @@ async def process_file_extraction(
 @router.post("/extract/audio", response_model=dict, tags=["Audio"])
 async def extract_from_audio(
     file: UploadFile = File(..., description="Audio file (MP3, WAV, M4A, OGG, FLAC)"),
-    user_id: int = Form(..., description="User ID"),
     save_to_db: bool = Form(True, description="Save tasks to database"),
     translate: bool = Form(True, description="Translate to English"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Extract tasks from audio files.
 
+    **Authentication Required**: Pass JWT token in Authorization header.
+
     **Supported formats:** MP3, WAV, M4A, OGG, FLAC
 
     **Process:**
-    1. Transcribe audio using Vosk (supports Arabic/English)
+    1. Transcribe audio using AssemblyAI (supports 100+ languages)
     2. Translate text to English (if needed)
-    3. Extract tasks using Llama 3.1 8B
+    3. Extract tasks using Groq LLM with enhanced time extraction
     4. Save to database (optional)
 
     **Example:**
     ```bash
     curl -X POST "http://localhost:8003/api/tasks/extract/audio" \\
-      -F "file=@meeting.mp3" \\
-      -F "user_id=123"
+      -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
+      -F "file=@meeting.mp3"
     ```
     """
     return await process_file_extraction(
         file=file,
-        user_id=user_id,
+        user_id=current_user.id,
         processor_type="audio",
         save_to_db=save_to_db,
         translate=translate,
@@ -248,38 +259,39 @@ async def extract_from_audio(
 @router.post("/extract/document", response_model=dict, tags=["Document"])
 async def extract_from_document(
     file: UploadFile = File(..., description="Document file (PDF, DOCX, DOC)"),
-    user_id: int = Form(..., description="User ID"),
     save_to_db: bool = Form(True, description="Save tasks to database"),
     translate: bool = Form(True, description="Translate to English"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Extract tasks from documents (PDF, DOCX, DOC).
 
+    **Authentication Required**: Pass JWT token in Authorization header.
+
     **Supported formats:** PDF, DOCX, DOC
 
     **Process:**
     1. Parse document using Unstructured (hi_res strategy)
-    2. Extract text, tables, and images separately
-    3. Process text/tables with Llama 3.1 8B
-    4. Process images with LLaVa vision model
-    5. Combine and save tasks
+    2. Extract text and tables (image extraction disabled for performance)
+    3. Process text/tables with Groq LLM with enhanced time extraction
+    4. Combine and save tasks
 
     **Features:**
     - Extracts tables as structured data
-    - Extracts embedded images
     - Handles mixed content documents
+    - Enhanced temporal information extraction
 
     **Example:**
     ```bash
     curl -X POST "http://localhost:8003/api/tasks/extract/document" \\
-      -F "file=@report.pdf" \\
-      -F "user_id=123"
+      -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
+      -F "file=@report.pdf"
     ```
     """
     return await process_file_extraction(
         file=file,
-        user_id=user_id,
+        user_id=current_user.id,
         processor_type="document",
         save_to_db=save_to_db,
         translate=translate,
@@ -294,17 +306,19 @@ async def extract_from_document(
 @router.post("/extract/image", response_model=dict, tags=["Image"])
 async def extract_from_image(
     file: UploadFile = File(..., description="Image file (PNG, JPG, JPEG, BMP, TIFF)"),
-    user_id: int = Form(..., description="User ID"),
     save_to_db: bool = Form(True, description="Save tasks to database"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Extract tasks from images using vision AI.
 
+    **Authentication Required**: Pass JWT token in Authorization header.
+
     **Supported formats:** PNG, JPG, JPEG, BMP, TIFF
 
     **Process:**
-    1. Process image with LLaVa vision model
+    1. Process image with Llama 4 Scout vision model
     2. Extract tasks directly from visual content
     3. Save to database (optional)
 
@@ -317,13 +331,13 @@ async def extract_from_image(
     **Example:**
     ```bash
     curl -X POST "http://localhost:8003/api/tasks/extract/image" \\
-      -F "file=@whiteboard.jpg" \\
-      -F "user_id=123"
+      -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
+      -F "file=@whiteboard.jpg"
     ```
     """
     return await process_file_extraction(
         file=file,
-        user_id=user_id,
+        user_id=current_user.id,
         processor_type="vision",
         save_to_db=save_to_db,
         translate=False,  # Vision model handles multilingual
@@ -338,26 +352,23 @@ async def extract_from_image(
 @router.post("/extract/handwritten", response_model=dict, tags=["Handwritten"])
 async def extract_from_handwritten(
     file: UploadFile = File(..., description="Handwritten notes (PNG, JPG, JPEG, PDF)"),
-    user_id: int = Form(..., description="User ID"),
     save_to_db: bool = Form(True, description="Save tasks to database"),
     translate: bool = Form(True, description="Translate to English"),
     preprocess: bool = Form(True, description="Preprocess image for better OCR"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Extract tasks from handwritten notes using OCR.
+    Extract tasks from handwritten notes using Groq Vision API.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     **Supported formats:** PNG, JPG, JPEG, BMP, TIFF, PDF (scanned)
 
     **Process:**
-    1. Preprocess image (optional):
-       - Convert to grayscale
-       - Enhance contrast (2x)
-       - Apply sharpening
-       - Reduce noise
-    2. Run Tesseract OCR with handwriting optimization
-    3. Extract tasks using Llama 3.1 8B
-    4. Save to database (optional)
+    1. Process image directly with Llama 4 Scout vision model
+    2. Extract tasks from handwritten content
+    3. Save to database (optional)
 
     **Best for:**
     - Handwritten notes on paper
@@ -373,15 +384,15 @@ async def extract_from_handwritten(
     **Example:**
     ```bash
     curl -X POST "http://localhost:8003/api/tasks/extract/handwritten" \\
+      -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
       -F "file=@handwritten_notes.jpg" \\
-      -F "user_id=123" \\
       -F "preprocess=true"
     ```
     """
     # Note: preprocess parameter is handled by handwritten_processor internally
     return await process_file_extraction(
         file=file,
-        user_id=user_id,
+        user_id=current_user.id,
         processor_type="handwritten",
         save_to_db=save_to_db,
         translate=translate,
@@ -396,20 +407,22 @@ async def extract_from_handwritten(
 @router.post("/extract/text", response_model=dict, tags=["Text"])
 async def extract_from_text(
     file: UploadFile = File(..., description="Text file (TXT, MD)"),
-    user_id: int = Form(..., description="User ID"),
     save_to_db: bool = Form(True, description="Save tasks to database"),
     translate: bool = Form(True, description="Translate to English"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Extract tasks from plain text files.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     **Supported formats:** TXT, MD
 
     **Process:**
     1. Read text content
     2. Translate to English (if needed)
-    3. Extract tasks using Llama 3.1 8B
+    3. Extract tasks using Groq LLM
     4. Save to database (optional)
 
     **Best for:**
@@ -421,13 +434,13 @@ async def extract_from_text(
     **Example:**
     ```bash
     curl -X POST "http://localhost:8003/api/tasks/extract/text" \\
-      -F "file=@tasks.txt" \\
-      -F "user_id=123"
+      -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
+      -F "file=@tasks.txt"
     ```
     """
     return await process_file_extraction(
         file=file,
-        user_id=user_id,
+        user_id=current_user.id,
         processor_type="text",
         save_to_db=save_to_db,
         translate=translate,
@@ -442,13 +455,15 @@ async def extract_from_text(
 @router.post("/extract/batch", response_model=dict, tags=["Batch"])
 async def extract_batch(
     files: List[UploadFile] = File(..., description="Multiple files of any type"),
-    user_id: int = Form(..., description="User ID"),
     save_to_db: bool = Form(True, description="Save tasks to database"),
     translate: bool = Form(True, description="Translate to English"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Extract tasks from multiple files in batch.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     **Supports:** All file types (auto-detected)
 
@@ -461,10 +476,10 @@ async def extract_batch(
     **Example:**
     ```bash
     curl -X POST "http://localhost:8003/api/tasks/extract/batch" \\
+      -H "Authorization: Bearer YOUR_JWT_TOKEN" \\
       -F "files=@meeting.mp3" \\
       -F "files=@report.pdf" \\
-      -F "files=@whiteboard.jpg" \\
-      -F "user_id=123"
+      -F "files=@whiteboard.jpg"
     ```
     """
     if not files:
@@ -490,7 +505,7 @@ async def extract_batch(
 
             result = extractor.extract_and_save_tasks(
                 file_path=temp_file_path,
-                user_id=user_id,
+                user_id=current_user.id,
                 processor_type=None,  # Auto-detect
                 translate=translate,
                 save_to_db=save_to_db
@@ -544,22 +559,24 @@ async def extract_batch(
 # EXTRACTION HISTORY ENDPOINT
 # ============================================================================
 
-@router.get("/extraction-history/{user_id}", response_model=dict, tags=["History"])
+@router.get("/extraction-history", response_model=dict, tags=["History"])
 async def get_extraction_history(
-    user_id: int,
     limit: int = 10,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get task extraction history for a user.
+    Get task extraction history for the authenticated user.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     **Parameters:**
-    - user_id: User ID (path parameter)
     - limit: Number of recent tasks to retrieve (query parameter, default: 10)
 
     **Example:**
     ```bash
-    curl "http://localhost:8003/api/tasks/extraction-history/123?limit=20"
+    curl "http://localhost:8003/api/tasks/extraction-history?limit=20" \\
+      -H "Authorization: Bearer YOUR_JWT_TOKEN"
     ```
     """
     from sqlalchemy import desc
@@ -592,7 +609,7 @@ async def get_extraction_history(
     try:
         # Get recent tasks
         tasks = db.query(Task).filter(
-            Task.user_id == user_id,
+            Task.user_id == current_user.id,
             Task.task_type == 'task'
         ).order_by(
             desc(Task.created_at)
@@ -615,7 +632,7 @@ async def get_extraction_history(
         return JSONResponse(
             status_code=200,
             content={
-                "user_id": user_id,
+                "user_id": current_user.id,
                 "total_tasks": len(tasks_data),
                 "limit": limit,
                 "tasks": tasks_data

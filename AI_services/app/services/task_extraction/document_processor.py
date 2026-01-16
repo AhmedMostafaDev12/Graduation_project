@@ -181,16 +181,16 @@ def process_document(document_path: str) -> List[dict]:
 
         # Check file type and use appropriate parser
         if file_path.suffix.lower() == '.pdf':
-            # Use PDF-specific parser with hi_res strategy for better image/table extraction
+            # Use PDF-specific parser with hi_res strategy for better table extraction
             # Strategies: "fast" (text only), "hi_res" (images/tables), "ocr_only" (scanned)
-            # Note: extract_image_block_to_payload extracts base64 data, but may be slow/large
+            # Note: Image extraction disabled to reduce API calls on free tier models
             elements = partition_pdf(
                 filename=str(file_path),
                 strategy="hi_res",  # High-resolution for better extraction
                 infer_table_structure=True,  # Extract tables
-                extract_images_in_pdf=True,  # Detect images
-                extract_image_block_types=["Image", "Table"],  # Extract both types
-                extract_image_block_to_payload=True,  # Actually extract base64 image data
+                extract_images_in_pdf=False,  # DISABLED: Don't detect images (saves API calls)
+                extract_image_block_types=["Table"],  # Only extract tables, not images
+                extract_image_block_to_payload=False,  # DISABLED: Don't extract image data
             )
         else:
             # Use auto parser for other document types (DOCX, TXT, etc.)
@@ -249,10 +249,16 @@ def process_document(document_path: str) -> List[dict]:
             print(f"    Found {len(table_tasks)} tasks from tables")
 
         # Step 5: Extract tasks from images using vision
-        # First, try images from unstructured elements
+        # DISABLED: Image extraction disabled to reduce API calls on free tier
+        # Images are no longer extracted from documents (set extract_images_in_pdf=False above)
         image_tasks_count = 0
 
         if images:
+            print("  [SKIPPED] Image task extraction disabled to save API quota")
+            print(f"           Found {len(images)} images but skipping vision API calls")
+            # Image processing commented out to avoid API usage on free tier
+            # Uncomment the code below to re-enable image task extraction
+            """
             print("  Extracting tasks from images with vision...")
 
             for i, image_data in enumerate(images):
@@ -279,6 +285,7 @@ def process_document(document_path: str) -> List[dict]:
                     continue
 
             print(f"    Found {image_tasks_count} tasks from {len(images)} images")
+            """
 
         # Step 6: For PDFs, also extract images directly with PyMuPDF
         # Note: This can extract MANY images (logos, icons, decorative elements)

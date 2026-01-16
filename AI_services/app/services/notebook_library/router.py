@@ -14,9 +14,18 @@ from typing import Optional
 from uuid import uuid4
 import os
 import logging
+import sys
 
 from Document import DocumentProcessor, uploads_dir
 from LangGraph_tool import graph
+
+# Add backend path for authentication imports
+backend_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'backend_services')
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
+from app.oauth2 import get_current_user
+from app.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +82,13 @@ class ChatRequest(BaseModel):
 @router.post("")
 async def create_notebook(
     file: UploadFile = File(...),
-    user_id: int = Form(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new notebook by uploading the first document."""
     notebook_id = str(uuid4())
     notebooks = load_notebooks()
+    user_id = current_user.id
 
     doc_id = str(uuid4())
     _, ext = os.path.splitext(file.filename)
@@ -167,13 +177,19 @@ async def create_notebook(
 async def upload_to_notebook(
     notebook_id: str,
     file: UploadFile = File(...),
-    user_id: int = Form(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Upload a document to an existing notebook."""
     notebooks = load_notebooks()
     if notebook_id not in notebooks:
         raise HTTPException(status_code=404, detail="Notebook not found")
+
+    # Verify notebook ownership
+    if notebooks[notebook_id].get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this notebook")
+
+    user_id = current_user.id
 
     doc_id = str(uuid4())
     _, ext = os.path.splitext(file.filename)
@@ -248,17 +264,26 @@ async def upload_to_notebook(
         raise HTTPException(status_code=500, detail=f"Error uploading to notebook: {str(e)}")
 
 @router.get("")
-async def list_notebooks():
-    """List all notebooks."""
+async def list_notebooks(current_user: User = Depends(get_current_user)):
+    """List all notebooks for the current user."""
     notebooks = load_notebooks()
-    return {"notebooks": [{"id": nid, "name": n.get("name", "Untitled")} for nid, n in notebooks.items()]}
+    user_notebooks = [
+        {"id": nid, "name": n.get("name", "Untitled")}
+        for nid, n in notebooks.items()
+        if n.get("user_id") == current_user.id
+    ]
+    return {"notebooks": user_notebooks}
 
 @router.get("/{notebook_id}")
-async def get_notebook(notebook_id: str):
+async def get_notebook(notebook_id: str, current_user: User = Depends(get_current_user)):
     """Get details of a specific notebook."""
     notebooks = load_notebooks()
     if notebook_id not in notebooks:
         raise HTTPException(status_code=404, detail="Notebook not found")
+
+    # Verify notebook ownership
+    if notebooks[notebook_id].get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this notebook")
 
     doc_details = []
     for doc_id in notebooks[notebook_id].get("doc_ids", []):
@@ -272,11 +297,19 @@ async def get_notebook(notebook_id: str):
     return {"notebook_id": notebook_id, "name": notebooks[notebook_id].get("name", "Untitled"), "documents": doc_details}
 
 @router.delete("/{notebook_id}/documents/{doc_id}")
-async def delete_document_from_notebook(notebook_id: str, doc_id: str):
+async def delete_document_from_notebook(
+    notebook_id: str,
+    doc_id: str,
+    current_user: User = Depends(get_current_user)
+):
     """Delete a document from a notebook."""
     notebooks = load_notebooks()
     if notebook_id not in notebooks:
         raise HTTPException(status_code=404, detail="Notebook not found")
+
+    # Verify notebook ownership
+    if notebooks[notebook_id].get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this notebook")
 
     if doc_id not in notebooks[notebook_id].get("doc_ids", []):
         raise HTTPException(status_code=404, detail="Document not found in this notebook")
@@ -292,11 +325,19 @@ async def delete_document_from_notebook(notebook_id: str, doc_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{notebook_id}/chat")
-async def chat_with_notebook(notebook_id: str, request: ChatRequest):
+async def chat_with_notebook(
+    notebook_id: str,
+    request: ChatRequest,
+    current_user: User = Depends(get_current_user)
+):
     """Stream chat responses for a specific notebook."""
     notebooks = load_notebooks()
     if notebook_id not in notebooks:
         raise HTTPException(status_code=404, detail="Notebook not found")
+
+    # Verify notebook ownership
+    if notebooks[notebook_id].get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this notebook")
 
     doc_ids = notebooks[notebook_id].get("doc_ids", [])
     if not doc_ids:
@@ -316,8 +357,15 @@ async def stream_agent_response(
     notebook_id: str,
     checkpoint_id: Optional[str] = None
 ):
-    """Stream agent responses using Server-Sent Events (SSE)."""
-    from langchain_core.messages import HumanMessage
+    """Stream agent responses word-by-word using Server-Sent Events (SSE)."""
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from LangGraph_tool import (
+        llm,
+        search_notebook_tool,
+        generate_summary_tool,
+        generate_quiz_tool,
+        extract_tasks_tool
+    )
 
     is_new_conversation = checkpoint_id is None
 
@@ -326,32 +374,242 @@ async def stream_agent_response(
             checkpoint_id = str(uuid4())
             yield f'data: {{ "type": "checkpoint", "checkpoint_id": "{checkpoint_id}" }}\n\n'
 
-        config = {"configurable": {"thread_id": checkpoint_id}}
+        # Detect which tool to use (same logic as agent_node)
+        user_message_lower = message.lower()
+        tool_to_use = None
+        tool_args = {"notebook_id": notebook_id}
 
-        async for state in graph.astream(
-            {
-                "messages": [HumanMessage(content=message)],
-                "notebook_id": notebook_id
-            },
-            config=config
-        ):
-            logger.info(f"State keys: {state.keys()}")
-            if "agent" in state:
-                messages = state["agent"].get("messages", [])
-                logger.info(f"Messages count: {len(messages)}")
-                if messages:
-                    last_message = messages[-1]
-                    logger.info(f"Last message type: {type(last_message)}, has content: {hasattr(last_message, 'content')}")
-                    if hasattr(last_message, 'content'):
-                        content = last_message.content
-                        logger.info(f"Content length: {len(content)}")
-                        content_escaped = content.replace('"', '\\"').replace("\n", "\\n")
-                        yield f'data: {{ "type": "content", "content": "{content_escaped}" }}\n\n'
+        if any(word in user_message_lower for word in ["search", "find", "look for", "about", "what", "where"]):
+            tool_to_use = search_notebook_tool
+            tool_args["query"] = message
+        elif any(word in user_message_lower for word in ["summarize", "summary", "overview", "main points"]):
+            tool_to_use = generate_summary_tool
+        elif any(word in user_message_lower for word in ["quiz", "questions", "test", "practice"]):
+            # Special handling for quiz generation - inform user about dedicated endpoint
+            yield f'data: {{ "type": "token", "content": "I can generate a quiz for you! " }}\n\n'
+            yield f'data: {{ "type": "token", "content": "For the best experience with interactive quiz features, " }}\n\n'
+            yield f'data: {{ "type": "token", "content": "please use the dedicated quiz endpoint:\\n\\n" }}\n\n'
+            yield f'data: {{ "type": "token", "content": "POST /notebooks/{notebook_id}/generate-quiz\\n\\n" }}\n\n'
+            yield f'data: {{ "type": "token", "content": "This will return structured JSON perfect for quiz UI components.\\n\\n" }}\n\n'
+            yield f'data: {{ "type": "token", "content": "Example request body:\\n" }}\n\n'
+            yield f'data: {{ "type": "token", "content": "{{ \\\\"num_questions\\\\": 5, \\\\"difficulty\\\\": \\\\"medium\\\\" }}" }}\n\n'
+            yield f'data: {{ "type": "end" }}\n\n'
+            return
+        elif any(word in user_message_lower for word in ["task", "todo", "action", "extract tasks"]):
+            tool_to_use = extract_tasks_tool
+
+        # Execute tool if needed
+        if tool_to_use:
+            tool_result = tool_to_use.invoke(tool_args)
+
+            system_message = SystemMessage(content=f"""You are an intelligent study assistant.
+
+A tool has been executed with the following result:
+{tool_result}
+
+Based on this information, provide a helpful response to the user's question: "{message}"
+
+Be clear, educational, and helpful.""")
+
+            full_messages = [system_message, HumanMessage(content=message)]
+        else:
+            # No tool needed
+            system_message = SystemMessage(content=f"""You are an intelligent study assistant helping users with their notebook.
+
+**Current Notebook ID:** {notebook_id}
+
+You can help users:
+- Search for information in their notebook
+- Summarize the notebook content
+- Generate quiz questions
+- Extract actionable tasks
+
+Be clear, educational, and helpful in your responses.""")
+
+            full_messages = [system_message, HumanMessage(content=message)]
+
+        # Stream LLM response word by word
+        async for chunk in llm.astream(full_messages):
+            if hasattr(chunk, 'content') and chunk.content:
+                # Escape special characters for JSON
+                content_escaped = chunk.content.replace('\\', '\\\\').replace('"', '\\"').replace("\n", "\\n")
+                yield f'data: {{ "type": "token", "content": "{content_escaped}" }}\n\n'
 
         yield f'data: {{ "type": "end" }}\n\n'
 
     except Exception as e:
         logger.error(f"Error in stream_agent_response: {str(e)}")
-        error_msg = str(e).replace('"', '\"').replace("\n", "\\n")
+        error_msg = str(e).replace('"', '\\"').replace("\n", "\\n")
         yield f'data: {{ "type": "error", "message": "{error_msg}" }}\n\n'
         yield f'data: {{ "type": "end" }}\n\n'
+
+
+# ============================================================================
+# QUIZ GENERATION ENDPOINT
+# ============================================================================
+
+class QuizRequest(BaseModel):
+    num_questions: int = 5
+    difficulty: str = "medium"
+    focus_topic: Optional[str] = None  # Specific topic/chapter to focus quiz on
+    doc_id: Optional[str] = None  # Specific document ID to generate quiz from
+
+@router.post("/{notebook_id}/generate-quiz")
+async def generate_quiz(
+    notebook_id: str,
+    request: QuizRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generate a structured quiz in JSON format from notebook content.
+
+    **Parameters:**
+    - num_questions: Number of questions (1-10, default: 5)
+    - difficulty: "easy", "medium", or "hard" (default: "medium")
+    - focus_topic: Optional topic/chapter to focus on (e.g., "Chapter 3: Cloud Security")
+    - doc_id: Optional specific document ID to generate quiz from (instead of all docs)
+
+    Returns quiz in format suitable for frontend quiz components:
+    {
+        "quiz": {
+            "title": "Quiz on [topic]",
+            "difficulty": "medium",
+            "total_questions": 5,
+            "questions": [
+                {
+                    "id": 1,
+                    "question": "Question text?",
+                    "options": [
+                        {"label": "A", "text": "Option A"},
+                        {"label": "B", "text": "Option B"},
+                        {"label": "C", "text": "Option C"},
+                        {"label": "D", "text": "Option D"}
+                    ],
+                    "correct_answer": "A",
+                    "explanation": "Explanation text"
+                }
+            ]
+        }
+    }
+    """
+    import json
+    import re
+    from LangGraph_tool import generate_quiz_tool, llm
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    notebooks = load_notebooks()
+    if notebook_id not in notebooks:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+
+    # Verify notebook ownership
+    if notebooks[notebook_id].get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this notebook")
+
+    doc_ids = notebooks[notebook_id].get("doc_ids", [])
+    if not doc_ids:
+        raise HTTPException(status_code=400, detail="Notebook is empty")
+
+    try:
+        # If doc_id is specified, validate it and use only that document
+        if request.doc_id:
+            if request.doc_id not in doc_ids:
+                raise HTTPException(status_code=400, detail=f"Document {request.doc_id} not found in notebook")
+            target_doc_ids = [request.doc_id]
+        else:
+            target_doc_ids = doc_ids
+
+        # Get text content from target documents
+        from LangGraph_tool import processor
+        full_text = ""
+        for doc_id in target_doc_ids:
+            full_text += processor.get_full_text(doc_id) + "\n\n"
+
+        if not full_text.strip():
+            raise HTTPException(status_code=400, detail="No text content found in the specified document(s)")
+
+        # Build the quiz generation prompt
+        num_questions = max(1, min(10, request.num_questions))
+        difficulty_descriptions = {
+            "easy": "simple recall questions",
+            "medium": "questions requiring understanding of concepts",
+            "hard": "complex questions requiring analysis"
+        }
+        diff_desc = difficulty_descriptions.get(request.difficulty, difficulty_descriptions["medium"])
+
+        # Add focus topic instruction if provided
+        focus_instruction = ""
+        if request.focus_topic:
+            focus_instruction = f"\n\nIMPORTANT: Focus ALL questions specifically on this topic: '{request.focus_topic}'\nOnly ask questions directly related to this topic. Ignore other content."
+
+        quiz_prompt = f"""Generate exactly {num_questions} multiple-choice quiz questions at {request.difficulty} difficulty ({diff_desc}) based on the content below.
+{focus_instruction}
+
+CONTENT FOR QUIZ:
+{full_text}
+
+CRITICAL: Return ONLY valid JSON in this EXACT format (no additional text):
+
+{{
+  "quiz": {{
+    "title": "Quiz on {request.focus_topic if request.focus_topic else '[topic from content]'}",
+    "difficulty": "{request.difficulty}",
+    "total_questions": {num_questions},
+    "questions": [
+      {{
+        "id": 1,
+        "question": "Question text here?",
+        "options": [
+          {{"label": "A", "text": "First option"}},
+          {{"label": "B", "text": "Second option"}},
+          {{"label": "C", "text": "Third option"}},
+          {{"label": "D", "text": "Fourth option"}}
+        ],
+        "correct_answer": "A",
+        "explanation": "Brief explanation why this is correct"
+      }}
+    ]
+  }}
+}}
+
+IMPORTANT:
+1. Return ONLY the JSON object, no markdown, no explanations
+2. Ensure all questions have exactly 4 options (A, B, C, D)
+3. correct_answer must be one of: "A", "B", "C", or "D"
+4. Make questions relevant to the actual content provided
+5. {"Focus on: " + request.focus_topic if request.focus_topic else "Cover various topics from the content"}"""
+
+        # Use LLM to generate the quiz
+        system_message = SystemMessage(content="You are a quiz generation expert. Generate quizzes in valid JSON format only.")
+        user_message = HumanMessage(content=quiz_prompt)
+
+        response = await llm.ainvoke([system_message, user_message])
+        response_text = response.content if hasattr(response, 'content') else str(response)
+
+        logger.info(f"Quiz LLM response length: {len(response_text)}")
+
+        # Clean the response (remove markdown code blocks if present)
+        response_text = response_text.strip()
+        if response_text.startswith("```json"):
+            response_text = re.sub(r'^```json\s*', '', response_text)
+            response_text = re.sub(r'\s*```$', '', response_text)
+        elif response_text.startswith("```"):
+            response_text = re.sub(r'^```\s*', '', response_text)
+            response_text = re.sub(r'\s*```$', '', response_text)
+
+        # Parse the JSON response
+        try:
+            quiz_data = json.loads(response_text)
+            return quiz_data
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse quiz JSON: {e}")
+            logger.error(f"Response text: {response_text[:500]}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to generate valid quiz JSON. Please try again."
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Quiz generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Quiz generation failed: {str(e)}")

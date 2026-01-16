@@ -64,7 +64,8 @@ class UserProfileResponse(BaseModel):
     user_id: int
     full_name: str
     email: str
-    role: Optional[str] = None
+    job_role: Optional[str] = None
+    seniority_level: Optional[str] = None
     department: Optional[str] = None
     timezone: str = Field(default="UTC")
 
@@ -104,7 +105,8 @@ class UpdateProfileRequest(BaseModel):
     """Update user profile."""
     full_name: Optional[str] = Field(None, min_length=1, max_length=100)
     email: Optional[EmailStr] = None
-    role: Optional[str] = Field(None, max_length=100)
+    job_role: Optional[str] = Field(None, max_length=100)
+    seniority_level: Optional[str] = Field(None, max_length=50, description="e.g., 'Junior', 'Mid', 'Senior', 'Staff'")
     department: Optional[str] = Field(None, max_length=100)
     timezone: Optional[str] = Field(None, max_length=50)
 

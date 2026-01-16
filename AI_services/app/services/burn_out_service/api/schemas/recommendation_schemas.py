@@ -15,7 +15,7 @@ from typing import List, Dict, Optional
 
 class RecommendationItem(BaseModel):
     """Single recommendation."""
-    recommendation_id: Optional[str] = Field(None, description="Unique recommendation ID")
+    recommendation_id: Optional[int] = Field(None, description="Unique recommendation ID")
     title: str = Field(..., description="Recommendation title")
     priority: str = Field(..., description="Priority level (HIGH, MEDIUM, LOW)")
     description: str = Field(..., description="Detailed description")

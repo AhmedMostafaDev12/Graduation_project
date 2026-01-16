@@ -108,7 +108,7 @@ def transcribe_audio(
         raise RuntimeError(f"Transcription failed: {transcript.error}")
 
     print(f"\n  [OK] Transcription complete!")
-    print(f"  Language: {transcript.language_code or 'auto-detected'}")
+    print(f"  Language: {getattr(transcript, 'language_code', 'auto-detected')}")
     print(f"  Duration: {transcript.audio_duration:.1f} seconds")
     print(f"  Confidence: {transcript.confidence:.2%}")
     print(f"  Characters: {len(transcript.text)}")
@@ -116,7 +116,7 @@ def transcribe_audio(
     # Build result dictionary
     result = {
         "text": transcript.text,
-        "language": transcript.language_code,
+        "language": getattr(transcript, 'language_code', None),
         "confidence": transcript.confidence,
         "audio_duration": transcript.audio_duration,
         "utterances": []
@@ -236,7 +236,7 @@ def save_transcript_to_file(
     metadata_file = os.path.join(uploads_dir, f"{base_name}_metadata.txt")
     with open(metadata_file, "w", encoding="utf-8") as f:
         f.write(f"Audio File: {audio_filename}\n")
-        f.write(f"Language: {transcription_metadata.get('language', 'unknown')}\n")
+        f.write(f"Language: {transcription_metadata.get('language') or 'unknown'}\n")
         f.write(f"Duration: {transcription_metadata.get('audio_duration', 0):.1f}s\n")
         f.write(f"Confidence: {transcription_metadata.get('confidence', 0):.2%}\n")
         f.write(f"\n{'='*60}\n")

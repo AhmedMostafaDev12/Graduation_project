@@ -26,9 +26,20 @@ from sqlalchemy.ext.declarative import declarative_base
 import os
 
 # Import UserMetrics from workload analyzer
-from Analysis_engine_layer import UserMetrics
+try:
+    from Analysis_engine_layer import UserMetrics
+except ImportError:
+    # Fallback for when imported from unified system
+    import sys
+    from pathlib import Path
+    burnout_service_path = Path(__file__).parent.parent
+    if str(burnout_service_path) not in sys.path:
+        sys.path.insert(0, str(burnout_service_path))
+    from Analysis_engine_layer import UserMetrics
 
-
+# Create local Base for model definitions
+# Note: We use a shared session from the unified system, so even though
+# models are defined separately, they query the same database
 Base = declarative_base()
 
 
@@ -103,22 +114,27 @@ class TaskDatabaseService:
     - Provide task data for event-specific recommendations
     """
 
-    def __init__(self, database_url: Optional[str] = None):
+    def __init__(self, database_url: Optional[str] = None, session: Optional[Session] = None):
         """
         Initialize task database service.
 
         Args:
             database_url: Database URL (defaults to TASK_DB_URL from .env)
+            session: Existing SQLAlchemy session to use (for unified system)
         """
-        self.database_url = database_url or os.getenv(
-            "TASK_DB_URL",
-            os.getenv("DATABASE_URL")  # Fallback to main database
-        )
-
-        # Create engine and session
-        self.engine = create_engine(self.database_url, echo=False)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+        if session:
+            # Use provided session (unified system)
+            self.session = session
+            self.engine = None
+        else:
+            # Create own session (standalone mode)
+            self.database_url = database_url or os.getenv(
+                "TASK_DB_URL",
+                os.getenv("DATABASE_URL")  # Fallback to main database
+            )
+            self.engine = create_engine(self.database_url, echo=False)
+            Session = sessionmaker(bind=self.engine)
+            self.session = Session()
 
     # ========================================================================
     # RETRIEVE TASKS
@@ -513,7 +529,7 @@ def get_complete_user_context(
         - meetings: List of actual meetings (for recommendations)
         - qualitative_data: QualitativeData object (for sentiment analysis)
     """
-    task_service = TaskDatabaseService()
+    task_service = TaskDatabaseService(session=session)
 
     # Calculate metrics automatically from task database
     metrics = task_service.calculate_workload_metrics(user_id, date)
@@ -526,7 +542,7 @@ def get_complete_user_context(
     qualitative_dict = task_service.get_qualitative_data(user_id, date)
 
     # Import QualitativeData here to avoid circular imports
-    from sentiment_analyzer import QualitativeData
+    from Analysis_engine_layer.sentiment_analyzer import QualitativeData
 
     qualitative_data = QualitativeData(
         meeting_transcripts=qualitative_dict['meeting_transcripts'],

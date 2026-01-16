@@ -28,7 +28,7 @@ from .companion_tools import (
 
 # Initialize Groq LLM with LangChain
 llm = ChatGroq(
-    model="llama-3.1-70b-versatile",
+    model="llama-3.3-70b-versatile",
     groq_api_key=os.getenv("GROQ_API_KEY"),
     temperature=0.7,
     max_tokens=1024
@@ -156,9 +156,10 @@ def route_to_tool(state: CompanionState) -> str:
 def task_tool_node(state: CompanionState) -> CompanionState:
     """Get task information and add to context"""
     user_id = state["user_id"]
+    db = state["db_session"]
 
     # Get task statistics from burnout analysis
-    stats = get_task_statistics(user_id)
+    stats = get_task_statistics(user_id, db)
 
     # Simplified, concise context
     context = f"""[TASK STATS]
@@ -181,9 +182,10 @@ Meetings today: {stats.get('meeting_hours_today', 0):.1f}h
 def burnout_tool_node(state: CompanionState) -> CompanionState:
     """Get burnout status (fast)"""
     user_id = state["user_id"]
+    db = state["db_session"]
 
     # Get burnout status - FAST (just retrieves existing analysis)
-    burnout_data = get_burnout_status(user_id)
+    burnout_data = get_burnout_status(user_id, db)
 
     # Extract insights if available
     insights = burnout_data.get('insights', {})
@@ -221,10 +223,11 @@ Top Concerns:
 def creation_tool_node(state: CompanionState) -> CompanionState:
     """Create task from natural language"""
     user_id = state["user_id"]
+    db = state["db_session"]
     last_message = state["messages"][-1]["content"]
 
     # Extract task using extraction service
-    result = create_task_from_text(user_id, last_message)
+    result = create_task_from_text(user_id, last_message, db)
 
     if result.get("success"):
         context = f"""

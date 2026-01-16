@@ -8,6 +8,16 @@ FastAPI router for submitting workload metrics and qualitative data.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
+import sys
+from pathlib import Path
+
+# Add backend_services to path for authentication
+backend_path = Path(__file__).parent.parent.parent.parent.parent.parent / "backend_services"
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
+from app.oauth2 import get_current_user
+from app.models import User
 
 from api.dependencies import get_db
 from api.schemas.workload_schemas import (
@@ -23,9 +33,27 @@ from api.schemas.workload_schemas import (
 )
 from api.schemas.burnout_schemas import BurnoutAnalysisResponse
 
-from Analysis_engine_layer import UserMetrics, QualitativeData
+try:
+    from Analysis_engine_layer import UserMetrics, QualitativeData
+except ImportError:
+    # Fallback for when imported from unified system
+    import sys
+    from pathlib import Path
+    burnout_service_path = Path(__file__).parent.parent.parent.parent
+    if str(burnout_service_path) not in sys.path:
+        sys.path.insert(0, str(burnout_service_path))
+    from Analysis_engine_layer import UserMetrics, QualitativeData
+
 from user_profile.integration_services import BurnoutSystemIntegration
 from user_profile.user_profile_service import UserProfileService
+
+# Pre-import the task database integration to avoid runtime import errors
+try:
+    from integrations.task_database_integration import get_complete_user_context
+except ImportError as e:
+    print(f"[WORKLOAD ROUTER] Failed to import get_complete_user_context: {e}")
+    # Will try again inside the endpoint function
+    get_complete_user_context = None
 
 router = APIRouter(prefix="/api", tags=["Workload & Analysis"])
 
@@ -34,171 +62,150 @@ router = APIRouter(prefix="/api", tags=["Workload & Analysis"])
 # DATA SUBMISSION ENDPOINTS
 # ============================================================================
 
-@router.post("/workload/submit")
-async def submit_workload_metrics(
-    request: WorkloadMetricsRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    Submit daily workload metrics from task management system.
-
-    This endpoint receives workload data and stores it for analysis.
-    Typically called by integrations (Jira, Asana, etc.) or scheduled jobs.
-
-    Returns:
-        Confirmation of data receipt
-    """
-    try:
-        # Convert request to UserMetrics
-        metrics = UserMetrics(
-            total_active_tasks=request.total_active_tasks,
-            overdue_tasks=request.overdue_tasks,
-            tasks_due_this_week=request.tasks_due_this_week,
-            completion_rate=request.completion_rate,
-            work_hours_today=request.work_hours_today,
-            work_hours_this_week=request.work_hours_this_week,
-            meetings_today=request.meetings_today,
-            total_meeting_hours_today=request.total_meeting_hours_today,
-            back_to_back_meetings=request.back_to_back_meetings,
-            weekend_work_sessions=request.weekend_work_sessions,
-            late_night_sessions=request.late_night_sessions,
-            consecutive_work_days=request.consecutive_work_days
-        )
-
-        # Here you could store raw metrics in a table for historical reference
-        # For now, we'll just acknowledge receipt
-
-        return {
-            "status": "success",
-            "message": "Workload metrics received",
-            "user_id": request.user_id,
-            "received_at": datetime.utcnow().isoformat(),
-            "metrics_summary": {
-                "total_tasks": metrics.total_active_tasks,
-                "work_hours_today": metrics.work_hours_today,
-                "meetings_today": metrics.meetings_today
-            }
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to submit workload metrics: {str(e)}")
-
-
 @router.post("/sentiment/submit")
 async def submit_qualitative_data(
     request: QualitativeDataRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Submit qualitative data (meeting notes, task notes, check-ins).
 
-    This endpoint receives text data for sentiment analysis.
+    **Authentication Required**: Pass JWT token in Authorization header.
+
+    This endpoint:
+    1. Analyzes each text entry through the sentiment analyzer to get a score (-1 to +1)
+    2. Saves each entry to the database with the sentiment_score and task_id
+
     Can be called by Slack integrations, meeting transcription services, etc.
 
     Returns:
-        Confirmation of data receipt
+        Confirmation of data receipt with sentiment scores
     """
     try:
-        # Convert request to QualitativeData
-        qualitative_data = QualitativeData(
-            meeting_transcripts=request.meeting_transcripts,
-            task_notes=request.task_notes,
-            user_check_ins=request.user_check_ins
-        )
+        user_id = current_user.id
+        # Import required modules
+        from integrations.task_database_integration import QualitativeDataEntry
+        from Analysis_engine_layer.sentiment_analyzer import SentimentAnalyzer, QualitativeData as SentimentQualData
 
-        # Here you could store raw qualitative data in a table for reference
+        # Initialize sentiment analyzer
+        print(f"[SENTIMENT SUBMIT] Initializing sentiment analyzer for user {user_id}")
+        analyzer = SentimentAnalyzer()
+
+        saved_entries = []
+        sentiment_scores = []
+
+        # Process meeting transcripts
+        for transcript in request.meeting_transcripts:
+            # Analyze sentiment
+            qual_data = SentimentQualData(meeting_transcripts=[transcript])
+            try:
+                sentiment_result = analyzer.analyze(qual_data)
+                score = sentiment_result.sentiment_score
+            except Exception as e:
+                print(f"[SENTIMENT SUBMIT] Warning: Sentiment analysis failed for meeting transcript: {e}")
+                score = 0.0  # Neutral score if analysis fails
+
+            # Save to database
+            entry = QualitativeDataEntry(
+                user_id=user_id,
+                entry_type='meeting_transcript',
+                content=transcript,
+                sentiment_score=score,
+                task_id=None
+            )
+            db.add(entry)
+            saved_entries.append('meeting_transcript')
+            sentiment_scores.append(score)
+            print(f"[SENTIMENT SUBMIT] Meeting transcript analyzed: score={score:.2f}")
+
+        # Process task notes
+        for note in request.task_notes:
+            # Analyze sentiment
+            qual_data = SentimentQualData(task_notes=[note])
+            try:
+                sentiment_result = analyzer.analyze(qual_data)
+                score = sentiment_result.sentiment_score
+            except Exception as e:
+                print(f"[SENTIMENT SUBMIT] Warning: Sentiment analysis failed for task note: {e}")
+                score = 0.0
+
+            # Save to database
+            entry = QualitativeDataEntry(
+                user_id=user_id,
+                entry_type='task_note',
+                content=note,
+                sentiment_score=score,
+                task_id=None  # TODO: Extract task_id from request if needed
+            )
+            db.add(entry)
+            saved_entries.append('task_note')
+            sentiment_scores.append(score)
+            print(f"[SENTIMENT SUBMIT] Task note analyzed: score={score:.2f}")
+
+        # Process user check-ins
+        for check_in in request.user_check_ins:
+            # Analyze sentiment
+            qual_data = SentimentQualData(user_check_ins=[check_in])
+            try:
+                sentiment_result = analyzer.analyze(qual_data)
+                score = sentiment_result.sentiment_score
+            except Exception as e:
+                print(f"[SENTIMENT SUBMIT] Warning: Sentiment analysis failed for check-in: {e}")
+                score = 0.0
+
+            # Save to database
+            entry = QualitativeDataEntry(
+                user_id=user_id,
+                entry_type='user_check_in',
+                content=check_in,
+                sentiment_score=score,
+                task_id=None
+            )
+            db.add(entry)
+            saved_entries.append('user_check_in')
+            sentiment_scores.append(score)
+            print(f"[SENTIMENT SUBMIT] User check-in analyzed: score={score:.2f}")
+
+        # Commit all entries to database
+        db.commit()
+
+        # Calculate average sentiment
+        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0.0
+
+        print(f"[SENTIMENT SUBMIT] Saved {len(saved_entries)} qualitative entries for user {user_id} (avg sentiment: {avg_sentiment:.2f})")
 
         return {
             "status": "success",
-            "message": "Qualitative data received",
-            "user_id": request.user_id,
+            "message": f"Analyzed and saved {len(saved_entries)} qualitative data entries to database",
+            "user_id": user_id,
             "received_at": datetime.utcnow().isoformat(),
             "data_summary": {
-                "meeting_transcripts": len(qualitative_data.meeting_transcripts),
-                "task_notes": len(qualitative_data.task_notes),
-                "user_check_ins": len(qualitative_data.user_check_ins),
-                "total_text_entries": len(qualitative_data.meeting_transcripts) +
-                                     len(qualitative_data.task_notes) +
-                                     len(qualitative_data.user_check_ins)
+                "meeting_transcripts": len(request.meeting_transcripts),
+                "task_notes": len(request.task_notes),
+                "user_check_ins": len(request.user_check_ins),
+                "total_entries_saved": len(saved_entries),
+                "average_sentiment_score": round(avg_sentiment, 2)
             }
         }
 
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"\n[SENTIMENT SUBMIT ERROR] Full traceback:\n{error_traceback}")
         raise HTTPException(status_code=500, detail=f"Failed to submit qualitative data: {str(e)}")
 
 
-@router.post("/burnout/analyze")
-async def analyze_burnout(
-    request: AnalyzeRequest,
-    db: Session = Depends(get_db)
-):
-    """
-    Trigger a complete burnout analysis.
-
-    This is the main endpoint that runs the full analysis pipeline:
-    1. Workload analysis
-    2. Sentiment analysis
-    3. Burnout score fusion
-    4. Profile context integration
-    5. Historical data storage
-
-    Returns:
-        Complete burnout analysis with all components
-    """
-    try:
-        # Convert request data to internal models
-        metrics = UserMetrics(
-            total_active_tasks=request.quantitative_metrics.total_active_tasks,
-            overdue_tasks=request.quantitative_metrics.overdue_tasks,
-            tasks_due_this_week=request.quantitative_metrics.tasks_due_this_week,
-            completion_rate=request.quantitative_metrics.completion_rate,
-            work_hours_today=request.quantitative_metrics.work_hours_today,
-            work_hours_this_week=request.quantitative_metrics.work_hours_this_week,
-            meetings_today=request.quantitative_metrics.meetings_today,
-            total_meeting_hours_today=request.quantitative_metrics.total_meeting_hours_today,
-            back_to_back_meetings=request.quantitative_metrics.back_to_back_meetings,
-            weekend_work_sessions=request.quantitative_metrics.weekend_work_sessions,
-            late_night_sessions=request.quantitative_metrics.late_night_sessions,
-            consecutive_work_days=request.quantitative_metrics.consecutive_work_days
-        )
-
-        qualitative_data = QualitativeData(
-            meeting_transcripts=request.qualitative_data.meeting_transcripts,
-            task_notes=request.qualitative_data.task_notes,
-            user_check_ins=request.qualitative_data.user_check_ins
-        )
-
-        # Initialize integration service
-        integration = BurnoutSystemIntegration(db)
-
-        # Run complete analysis
-        analysis_result = integration.analyze_user_burnout(
-            user_id=request.user_id,
-            quantitative_metrics=metrics,
-            qualitative_data=qualitative_data,
-            store_history=request.store_history
-        )
-
-        # Return the analysis result
-        # The structure already matches what we need
-        return {
-            "status": "success",
-            "message": "Burnout analysis completed",
-            "analysis": analysis_result
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to analyze burnout: {str(e)}")
-
-
-@router.post("/burnout/analyze-auto/{user_id}")
+@router.post("/burnout/analyze-auto")
 async def analyze_burnout_auto(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     store_history: bool = True,
     db: Session = Depends(get_db)
 ):
     """
     Trigger burnout analysis with AUTO-FETCH from database.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     This endpoint automatically:
     1. Fetches tasks from the database
@@ -210,18 +217,22 @@ async def analyze_burnout_auto(
     No manual input required - all data fetched from database!
 
     Args:
-        user_id: User ID to analyze
         store_history: Whether to store analysis in history (default: True)
 
     Returns:
         Complete burnout analysis with all components
     """
     try:
-        # Import the auto-fetch function
-        from integrations.task_database_integration import get_complete_user_context
+        user_id = current_user.id
+        # Import the auto-fetch function (use pre-imported if available)
+        if get_complete_user_context is None:
+            from integrations.task_database_integration import get_complete_user_context as _get_context
+            context_func = _get_context
+        else:
+            context_func = get_complete_user_context
 
         # Auto-fetch all data from database
-        context = get_complete_user_context(user_id=user_id, session=db)
+        context = context_func(user_id=user_id, session=db)
 
         # Initialize integration service
         integration = BurnoutSystemIntegration(db)
@@ -245,16 +256,21 @@ async def analyze_burnout_auto(
         }
 
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"\n[BURNOUT AUTO-ANALYZE ERROR] Full traceback:\n{error_traceback}")
         raise HTTPException(status_code=500, detail=f"Failed to auto-analyze burnout: {str(e)}")
 
 
-@router.get("/workload/breakdown/{user_id}", response_model=WorkloadBreakdownResponse)
+@router.get("/workload/breakdown", response_model=WorkloadBreakdownResponse)
 async def get_workload_breakdown(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get detailed workload breakdown for UI charts.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns:
         - Task load breakdown
@@ -264,6 +280,7 @@ async def get_workload_breakdown(
         - Comparison to baseline (if available)
     """
     try:
+        user_id = current_user.id
         # Get latest analysis to extract metrics
         from user_profile.burnout_model import BurnoutAnalysis
 

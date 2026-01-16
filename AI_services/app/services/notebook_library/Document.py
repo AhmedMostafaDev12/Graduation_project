@@ -30,12 +30,23 @@ os.makedirs(uploads_dir, exist_ok=True)
 COLLECTION_NAME = "notebook_documents"
 
 def get_loader(file_path: str):
-    """Returns the appropriate document loader based on file extension"""
+    """
+    Returns the appropriate document loader based on file extension.
+
+    Note: Image extraction is disabled to reduce API calls on free tier.
+    UnstructuredFileLoader will only extract text and tables, not images.
+    """
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".pdf":
+        # PyMuPDFLoader only extracts text, not images (good for performance)
         return PyMuPDFLoader(file_path)
     else:
-        return UnstructuredFileLoader(file_path)
+        # UnstructuredFileLoader with default settings (no hi_res strategy)
+        # This avoids image extraction and keeps API usage low
+        return UnstructuredFileLoader(
+            file_path,
+            mode="elements",  # Extract elements but don't use hi_res strategy
+        )
 
 # ==========================================================
 # RAG DOCUMENT PROCESSING 
@@ -174,50 +185,91 @@ class DocumentProcessor:
         score_threshold: float = 0.0
     ) -> List[dict]:
         """
-        Search within a document using PgVector.
+        Search within a document using PgVector with metadata filtering.
         """
         try:
-            # Do similarity search without filters to avoid jsonb_path_match issues
-            # We'll filter results in Python instead
-            retriever = self.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={
-                    "k": k * 3  # Get more results to filter
-                }
+            # Use PGVector's similarity_search_with_score with metadata filter
+            # This ensures we only search within the specified doc_id
+            filter_dict = {"doc_id": doc_id}
+
+            docs_with_scores = self.vector_store.similarity_search_with_score(
+                query=query,
+                k=k,
+                filter=filter_dict
             )
 
-            docs = retriever.invoke(query)
-
-            # Filter results in Python by doc_id
-            filtered_docs = [
-                doc for doc in docs
-                if doc.metadata.get("doc_id") == doc_id
-            ]
+            logger.info(f"Vector search with filter doc_id={doc_id} returned {len(docs_with_scores)} results for query: '{query}'")
 
             # Apply page filter if specified
             if page_filter:
-                filtered_docs = [
-                    doc for doc in filtered_docs
+                docs_with_scores = [
+                    (doc, score) for doc, score in docs_with_scores
                     if doc.metadata.get("page") in page_filter
                 ]
 
-            # Limit to k results
-            filtered_docs = filtered_docs[:k]
-
-            logger.info(f"Found {len(filtered_docs)} results for query in doc {doc_id} using PgVector")
+            logger.info(f"Found {len(docs_with_scores)} results for query in doc {doc_id} using PgVector")
 
             return [
                 {
                     "content": doc.page_content,
                     "page": doc.metadata.get("page", "unknown"),
-                    "source": doc.metadata.get("source", "unknown")
+                    "source": doc.metadata.get("source", "unknown"),
+                    "score": float(score)
                 }
-                for doc in filtered_docs
+                for doc, score in docs_with_scores
             ]
 
         except Exception as e:
             logger.error(f"Error searching document {doc_id} with PgVector: {str(e)}")
-            return []
+            # Fallback to old method if metadata filtering fails
+            logger.info("Falling back to Python-based filtering")
+            try:
+                retriever = self.vector_store.as_retriever(
+                    search_type="similarity",
+                    search_kwargs={
+                        "k": k * 10  # Increased multiplier to get more results
+                    }
+                )
+
+                docs = retriever.invoke(query)
+
+                logger.info(f"Vector search returned {len(docs)} total results for query: '{query}'")
+
+                # Log doc_ids from all results to see distribution
+                doc_ids_found = [doc.metadata.get("doc_id") for doc in docs]
+                logger.info(f"Doc IDs in results: {doc_ids_found}")
+
+                # Filter results in Python by doc_id
+                filtered_docs = [
+                    doc for doc in docs
+                    if doc.metadata.get("doc_id") == doc_id
+                ]
+
+                logger.info(f"After filtering for doc_id {doc_id}: {len(filtered_docs)} results")
+
+                # Apply page filter if specified
+                if page_filter:
+                    filtered_docs = [
+                        doc for doc in filtered_docs
+                        if doc.metadata.get("page") in page_filter
+                    ]
+
+                # Limit to k results
+                filtered_docs = filtered_docs[:k]
+
+                logger.info(f"Found {len(filtered_docs)} results for query in doc {doc_id} using fallback method")
+
+                return [
+                    {
+                        "content": doc.page_content,
+                        "page": doc.metadata.get("page", "unknown"),
+                        "source": doc.metadata.get("source", "unknown")
+                    }
+                    for doc in filtered_docs
+                ]
+            except Exception as fallback_error:
+                logger.error(f"Fallback method also failed: {str(fallback_error)}")
+                return []
     
     def delete_document(self, doc_id: str) -> bool:
         """

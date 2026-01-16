@@ -12,13 +12,30 @@ from typing import Dict, Any, List
 from datetime import datetime, timedelta
 import os
 import sys
+import json
+from pathlib import Path
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+
+# Load environment variables
+load_dotenv()
+
+# Add backend_services to path for authentication
+backend_path = Path(__file__).parent.parent.parent.parent.parent.parent / "backend_services"
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
+from app.oauth2 import get_current_user
+from app.models import User
 
 # Import shared services (replaces HTTP calls)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
 from shared_services import TaskService
 
 from api.dependencies import get_db
-from pydantic import BaseModel
+from pydantic import BaseModel, Field as PydanticField
 from user_profile.recommendation_models import (
     Recommendation,
     RecommendationApplication,
@@ -35,7 +52,6 @@ router = APIRouter(prefix="/api/recommendations", tags=["Recommendation Applicat
 
 class ApplyRecommendationRequest(BaseModel):
     """Request to apply a recommendation"""
-    user_id: int
     recommendation_id: int  # Database ID of the recommendation to apply
 
 
@@ -59,43 +75,133 @@ def parse_action_steps_to_tasks(
     recommendation_title: str
 ) -> List[Dict[str, Any]]:
     """
-    Parse recommendation action steps into actionable tasks.
+    Parse recommendation action steps into actionable tasks using LLM.
+
+    Uses Groq LLM to intelligently parse action steps and determine:
+    - Appropriate task priority based on context
+    - Realistic due dates based on temporal cues
+    - Clear task titles and descriptions
 
     Returns list of task objects to create.
     """
-    tasks_to_create = []
+    try:
+        # Initialize Groq LLM
+        llm = ChatGroq(
+            groq_api_key=os.getenv("GROQ_API_KEY"),
+            model_name="llama-3.3-70b-versatile",
+            temperature=0.3,  # Lower temperature for more consistent parsing
+            max_tokens=2000
+        )
 
-    for i, step in enumerate(action_steps):
-        # Determine task priority based on keywords
-        priority = "Medium"
-        if any(keyword in step.lower() for keyword in ["urgent", "immediately", "critical"]):
-            priority = "High"
-        elif any(keyword in step.lower() for keyword in ["consider", "optional", "eventually"]):
-            priority = "Low"
+        # Define the output schema
+        class TaskOutput(BaseModel):
+            """Schema for a single parsed task"""
+            title: str = PydanticField(description="Clear, concise task title (keep original text if appropriate)")
+            description: str = PydanticField(description="Brief description of what needs to be done")
+            priority: str = PydanticField(description="Must be: High, Medium, or Low")
+            due_date_offset_days: int = PydanticField(description="Number of days from today (0=today, 1=tomorrow, 7=week, null=no deadline)")
+            reasoning: str = PydanticField(description="Brief explanation of priority and timing decisions")
 
-        # Determine due date based on keywords
-        due_date = None
-        if "today" in step.lower():
-            due_date = datetime.utcnow().isoformat()
-        elif "this week" in step.lower():
-            due_date = (datetime.utcnow() + timedelta(days=7)).isoformat()
-        elif "tomorrow" in step.lower():
-            due_date = (datetime.utcnow() + timedelta(days=1)).isoformat()
+        class TaskList(BaseModel):
+            """List of parsed tasks"""
+            tasks: List[TaskOutput]
 
-        # Create task object
-        task = {
-            "title": step,
-            "description": f"Action step from recommendation: {recommendation_title}",
-            "priority": priority,
-            "status": "Todo",
-            "due_date": due_date,
-            "tags": ["burnout-prevention", "auto-generated"],
-            "created_from": "recommendation"
-        }
+        # Create JSON parser
+        parser = JsonOutputParser(pydantic_object=TaskList)
 
-        tasks_to_create.append(task)
+        # Build the prompt
+        current_date = datetime.utcnow().strftime("%Y-%m-%d")
+        action_steps_text = "\n".join([f"{i+1}. {step}" for i, step in enumerate(action_steps)])
 
-    return tasks_to_create
+        prompt_template = PromptTemplate(
+            template="""You are a task planning assistant helping convert burnout prevention action steps into structured tasks.
+
+RECOMMENDATION TITLE: {recommendation_title}
+TODAY'S DATE: {current_date}
+
+ACTION STEPS TO PARSE:
+{action_steps}
+
+Your job is to convert each action step into a structured task with:
+1. **Title**: Keep the original text if clear, or make it more actionable
+2. **Description**: Add context about why this helps with burnout prevention
+3. **Priority**:
+   - High: Urgent/immediate actions, critical for preventing burnout escalation
+   - Medium: Important but not urgent, foundational habits
+   - Low: Nice-to-have, optional optimizations
+4. **Due Date**: Estimate realistic timeframe based on:
+   - "today", "immediately" → 0 days
+   - "tomorrow", "soon" → 1 day
+   - "this week", "within a week" → 7 days
+   - "end of workday", "daily routine" → 0 days (start today)
+   - "ongoing", "regularly", "as needed" → null (no specific deadline)
+   - If no time cue, use null
+
+IMPORTANT RULES:
+- Priority MUST be exactly: "High", "Medium", or "Low" (case-sensitive)
+- due_date_offset_days must be an integer or null
+- Keep task titles concise and actionable
+- Consider that these are burnout prevention tasks - balance urgency with sustainability
+
+{format_instructions}
+
+Return ONLY valid JSON, no additional text.""",
+            input_variables=["recommendation_title", "current_date", "action_steps"],
+            partial_variables={"format_instructions": parser.get_format_instructions()}
+        )
+
+        # Create the chain
+        chain = prompt_template | llm | parser
+
+        # Invoke the LLM
+        result = chain.invoke({
+            "recommendation_title": recommendation_title,
+            "current_date": current_date,
+            "action_steps": action_steps_text
+        })
+
+        # Convert LLM output to task objects
+        tasks_to_create = []
+        for task_output in result.get("tasks", []):
+            # Calculate due date from offset
+            due_date = None
+            offset_days = task_output.get("due_date_offset_days")
+            if offset_days is not None:
+                due_date = (datetime.utcnow() + timedelta(days=offset_days)).isoformat()
+
+            task = {
+                "title": task_output.get("title"),
+                "description": task_output.get("description"),
+                "priority": task_output.get("priority", "Medium"),
+                "status": "Todo",
+                "due_date": due_date,
+                "tags": ["burnout-prevention", "auto-generated"],
+                "created_from": "recommendation"
+            }
+            tasks_to_create.append(task)
+
+        print(f"[LLM PARSING] Successfully parsed {len(tasks_to_create)} tasks")
+        return tasks_to_create
+
+    except Exception as e:
+        print(f"[LLM PARSING ERROR] Failed to parse with LLM: {e}")
+        print("[LLM PARSING] Falling back to simple parsing")
+
+        # Fallback: Create basic tasks from action steps
+        tasks_to_create = []
+        for step in action_steps:
+            task = {
+                "title": step,
+                "description": f"Action step from recommendation: {recommendation_title}",
+                "priority": "Medium",
+                "status": "Todo",
+                "due_date": None,
+                "tags": ["burnout-prevention", "auto-generated"],
+                "created_from": "recommendation"
+            }
+            tasks_to_create.append(task)
+
+        return tasks_to_create
 
 
 def create_focus_time_blocks(action_step: str, user_id: int) -> int:
@@ -153,14 +259,16 @@ def adjust_meeting_schedules(action_step: str, user_id: int) -> int:
 # APPLY RECOMMENDATION ENDPOINT
 # ============================================================================
 
-@router.post("/{user_id}/apply", response_model=ApplyRecommendationResponse)
+@router.post("/apply", response_model=ApplyRecommendationResponse)
 async def apply_recommendation(
-    user_id: int,
     request: ApplyRecommendationRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Apply a specific recommendation by creating tasks and modifying schedule.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     This endpoint:
     1. Fetches the recommendation from database
@@ -171,7 +279,6 @@ async def apply_recommendation(
     6. Returns summary of actions taken
 
     Parameters:
-        - user_id: User ID
         - recommendation_id: Database ID of recommendation to apply
 
     Returns:
@@ -181,6 +288,7 @@ async def apply_recommendation(
         - List of actions applied
     """
     try:
+        user_id = current_user.id
         # Get recommendation from database
         recommendation = db.query(Recommendation).filter(
             Recommendation.id == request.recommendation_id,
@@ -221,10 +329,11 @@ async def apply_recommendation(
                     # Create action item record linking recommendation to task
                     action_item = RecommendationActionItem(
                         recommendation_id=recommendation.id,
-                        task_id=task_id,
+                        created_task_id=task_id,  # Use created_task_id to match DB schema
                         action_text=action_steps[i] if i < len(action_steps) else task['title'],
-                        action_order=i + 1,
-                        completed=False
+                        order_index=i + 1,  # Use order_index to match DB schema
+                        applied=True,  # Mark as applied since we just created the task
+                        applied_at=datetime.utcnow()
                     )
                     db.add(action_item)
 
@@ -279,18 +388,21 @@ async def apply_recommendation(
         )
 
 
-@router.post("/{user_id}/apply-all")
+@router.post("/apply-all")
 async def apply_all_recommendations(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Apply ALL unapplied recommendations for a user.
+    Apply ALL unapplied recommendations for the authenticated user.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Fetches all recommendations from the database that haven't been applied yet
     and applies each one.
     """
     try:
+        user_id = current_user.id
         # Get all recommendations for this user that haven't been applied
         unapplied_recommendations = db.query(Recommendation).filter(
             Recommendation.user_id == user_id
@@ -319,11 +431,10 @@ async def apply_all_recommendations(
 
         for recommendation in unapplied_recommendations:
             request = ApplyRecommendationRequest(
-                user_id=user_id,
                 recommendation_id=recommendation.id
             )
 
-            result = await apply_recommendation(user_id, request, db)
+            result = await apply_recommendation(request, current_user, db)
 
             total_tasks_created += result.tasks_created
             total_tasks_modified += result.tasks_modified

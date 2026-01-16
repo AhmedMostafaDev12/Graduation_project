@@ -18,7 +18,7 @@ try:
     HANDWRITTEN_AVAILABLE = True
 except ImportError as e:
     HANDWRITTEN_AVAILABLE = False
-    print(f"❌ Error importing handwritten processor: {e}")
+    print(f"Error importing handwritten processor: {e}")
     print("\nMake sure you have installed:")
     print("  pip install pytesseract pillow pdf2image")
     sys.exit(1)
@@ -27,7 +27,7 @@ except ImportError as e:
 def display_tasks(tasks: list):
     """Display extracted tasks in a formatted way"""
     if not tasks:
-        print("\n📝 No tasks were extracted")
+        print("\nNo tasks were extracted")
         print("\nPossible reasons:")
         print("  - The handwriting might not be clear enough")
         print("  - The image quality might be too low")
@@ -55,31 +55,22 @@ def display_tasks(tasks: list):
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python test_handwritten.py <file_path> [options]")
+        print("Usage: python test_handwritten.py <file_path>")
         print("\nArguments:")
         print("  file_path              Path to handwritten notes (image or PDF)")
-        print("\nOptions:")
-        print("  --no-preprocess        Disable image preprocessing")
-        print("  --no-translate         Skip translation (for English only)")
         print("\nSupported formats:")
         print("  - Images: PNG, JPG, JPEG, BMP, TIFF")
         print("  - PDF: Scanned documents with handwritten content")
         print("\nExamples:")
         print("  python test_handwritten.py notes.jpg")
         print("  python test_handwritten.py scanned_notes.pdf")
-        print("  python test_handwritten.py notes.jpg --no-preprocess")
-        print("  python test_handwritten.py notes.jpg --no-translate")
         return
 
     file_path = sys.argv[1]
 
     if not os.path.exists(file_path):
-        print(f"❌ Error: File not found: {file_path}")
+        print(f"Error: File not found: {file_path}")
         return
-
-    # Parse options
-    preprocess = "--no-preprocess" not in sys.argv
-    translate = "--no-translate" not in sys.argv
 
     # Get file info
     ext = Path(file_path).suffix.lower()
@@ -89,28 +80,22 @@ def main():
     print("=" * 60)
     print(f"File:         {file_path}")
     print(f"Type:         {ext}")
-    print(f"Preprocessing: {'Enabled' if preprocess else 'Disabled'}")
-    print(f"Translation:   {'Enabled' if translate else 'Disabled'}")
     print("=" * 60)
 
     # Validate file type
     if ext == '.pdf':
-        print("\n📄 Processing PDF with handwritten content...")
+        print("\nProcessing PDF with handwritten content...")
     elif ext in ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif']:
-        print("\n🖼️  Processing handwritten image...")
+        print("\nProcessing handwritten image...")
     else:
-        print(f"\n❌ Unsupported file type: {ext}")
+        print(f"\nUnsupported file type: {ext}")
         print("Supported: .pdf, .png, .jpg, .jpeg, .bmp, .tiff")
         return
 
     # Process handwritten notes
-    print("\n🔍 Starting OCR and task extraction...\n")
+    print("\nStarting OCR and task extraction...\n")
 
-    tasks = process_handwritten_notes(
-        file_path,
-        preprocess=preprocess,
-        translate=translate
-    )
+    tasks = process_handwritten_notes(file_path)
 
     # Display results
     display_tasks(tasks)
@@ -142,7 +127,7 @@ def main():
         for category, count in sorted(categories.items()):
             print(f"  {category}: {count}")
 
-    print("\n✅ Handwritten notes processing complete!")
+    print("\nHandwritten notes processing complete!")
 
 
 if __name__ == "__main__":

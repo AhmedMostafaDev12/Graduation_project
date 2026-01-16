@@ -27,16 +27,23 @@ def create_access_token(data: dict, expires_delta=ACCESS_TOKEN_EXPIRE_MINUTES):
 
 def verify_access_token(token: str, credentials_exception):
     try:
+        print(f"\n[TOKEN VERIFY] Attempting to verify token...")
+        print(f"[TOKEN VERIFY] Using SECRET_KEY: {SECRET_KEY[:20]}...")
+        print(f"[TOKEN VERIFY] Using ALGORITHM: {ALGORITHM}")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(f"[TOKEN VERIFY] Token decoded successfully. Payload: {payload}")
         id: str = payload.get("user_id")
-        
+
         if id is None:
+            print(f"[TOKEN VERIFY ERROR] No user_id in payload")
             raise credentials_exception
         token_data = schemas.TokenData(id=str(id))
-    
-    except JWTError:
+        print(f"[TOKEN VERIFY] Token validated for user_id: {id}")
+
+    except JWTError as e:
+        print(f"[TOKEN VERIFY ERROR] JWT Error: {e}")
         raise credentials_exception
-    
+
     return token_data
 
 

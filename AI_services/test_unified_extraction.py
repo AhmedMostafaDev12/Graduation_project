@@ -101,7 +101,7 @@ def main():
 
     # Validate file exists
     if not os.path.exists(file_path):
-        print(f"❌ Error: File not found: {file_path}")
+        print(f" Error: File not found: {file_path}")
         return
 
     # Get file info
@@ -173,18 +173,18 @@ def main():
 
         # Success message
         if result['success']:
-            print(f"✅ Successfully extracted {result['tasks_extracted']} tasks!")
+            print(f" Successfully extracted {result['tasks_extracted']} tasks!")
 
             if save_to_db:
-                print(f"✅ Saved {result['tasks_saved']} tasks to database!")
+                print(f" Saved {result['tasks_saved']} tasks to database!")
 
             if save_json:
-                print(f"✅ Result saved to: {save_json}")
+                print(f" Result saved to: {save_json}")
         else:
-            print("❌ Extraction failed or no tasks found")
+            print(" Extraction failed or no tasks found")
 
     except Exception as e:
-        print(f"\n❌ Error during extraction: {e}")
+        print(f"\n Error during extraction: {e}")
         import traceback
         traceback.print_exc()
 

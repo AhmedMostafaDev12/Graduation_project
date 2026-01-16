@@ -15,20 +15,42 @@ router = APIRouter(prefix="/api/auth", tags=["App-Auth"])
 
 @router.post('/login', response_model=schemas.Token, status_code=status.HTTP_200_OK)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    
+
     user = db.query(models.User).filter(models.User.email == user_credentials.username).first()
-    
-    if not user or not user.password:
+
+    # DEBUG: Log login attempt
+    print(f"\n[LOGIN] Attempt for email: {user_credentials.username}")
+
+    if not user:
+        print(f"[LOGIN ERROR] User not found")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invaild Credentials")
 
-    if not crypt_utils.verify(user_credentials.password, user.password):
+    print(f"[LOGIN] User found - ID: {user.id}, is_verified: {user.is_verified}")
+
+    if not user.password:
+        print(f"[LOGIN ERROR] User has no password set")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invaild Credentials")
+
+    print(f"[LOGIN] Verifying password...")
+    password_valid = crypt_utils.verify(user_credentials.password, user.password)
+    print(f"[LOGIN] Password valid: {password_valid}")
+
+    if not password_valid:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credentials")
-    
+
     if not user.is_verified:
+        print(f"[LOGIN ERROR] User email not verified")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Please verify your email first from your mailbox.")
+
+    print(f"[LOGIN] Success! Generating tokens...")
 
     access_token = oauth2.create_access_token(data = {"user_id": user.id})
     refresh_token = oauth2.create_refresh_token(data={"user_id": user.id})
+
+    # Save hashed refresh token to database
+    user.refresh_token = crypt_utils.hash(refresh_token)
+    user.refresh_token_expiry = datetime.utcnow() + timedelta(days=7)
+    db.commit()
 
     return {
         "access_token": access_token,
@@ -46,7 +68,7 @@ def logout(current_user: models.User = Depends(oauth2.get_current_user), db: Ses
 
 
 @router.post('/refresh-token', status_code=status.HTTP_200_OK)
-def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+async def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
     token_data = oauth2.verify_refresh_token(refresh_token, credentials_exception)
@@ -58,8 +80,17 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     if not crypt_utils.verify(refresh_token, user.refresh_token):
             raise credentials_exception
 
-    if user.refresh_token_expiry and user.refresh_token_expiry < datetime.utcnow():
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+    # Handle timezone-aware datetime comparison
+    if user.refresh_token_expiry:
+        current_time = datetime.utcnow()
+        token_expiry = user.refresh_token_expiry
+
+        # Remove timezone info from both to compare as naive datetimes
+        if token_expiry.tzinfo is not None:
+            token_expiry = token_expiry.replace(tzinfo=None)
+
+        if token_expiry < current_time:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
 
     new_refresh_token = oauth2.create_refresh_token(data={"user_id": user.id})
     user.refresh_token = crypt_utils.hash(new_refresh_token)
@@ -68,9 +99,9 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
 
     new_access_token = oauth2.create_access_token(data={"user_id": user.id})
     
-    # TODO i want to put here sync_all_user_integration_data func 
-    # as for every refresh tokens get all also refresh it's data  
-    sync_task.sync_user(user)   
+    # TODO i want to put here sync_all_user_integration_data func
+    # as for every refresh tokens get all also refresh it's data
+    await sync_task.sync_user(user)   
 
     
     return {
@@ -122,11 +153,15 @@ def verify_email(token: str, db: Session = Depends(get_db)):
         return {"message": "Email already verified."}
     
     user.is_verified = True
-    db.commit()
 
     access_token = oauth2.create_access_token({"user_id": user.id})
     refresh_token = oauth2.create_refresh_token(data={"user_id": user.id})
-    
+
+    # Save hashed refresh token to database
+    user.refresh_token = crypt_utils.hash(refresh_token)
+    user.refresh_token_expiry = datetime.utcnow() + timedelta(days=7)
+    db.commit()
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,

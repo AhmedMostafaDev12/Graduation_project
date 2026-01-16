@@ -9,6 +9,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
+import sys
+from pathlib import Path
+
+# Add backend_services to path for authentication
+backend_path = Path(__file__).parent.parent.parent.parent.parent.parent / "backend_services"
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
+from app.oauth2 import get_current_user
+from app.models import User
 
 from api.dependencies import get_db
 from api.schemas.burnout_schemas import (
@@ -36,13 +46,15 @@ router = APIRouter(prefix="/api/burnout", tags=["Burnout Analysis"])
 # BURNOUT ANALYSIS ENDPOINTS
 # ============================================================================
 
-@router.get("/analysis/{user_id}", response_model=BurnoutAnalysisResponse)
+@router.get("/analysis", response_model=BurnoutAnalysisResponse)
 async def get_burnout_analysis(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get the latest burnout analysis for a user.
+    Get the latest burnout analysis for the authenticated user.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns:
         - Current burnout score (0-100)
@@ -52,6 +64,9 @@ async def get_burnout_analysis(
         - Alert triggers
     """
     try:
+        # Get user_id from authenticated user
+        user_id = current_user.id
+
         # Get latest analysis from database
         latest_analysis = db.query(BurnoutAnalysis).filter(
             BurnoutAnalysis.user_id == user_id
@@ -100,14 +115,16 @@ async def get_burnout_analysis(
         raise HTTPException(status_code=500, detail=f"Failed to get burnout analysis: {str(e)}")
 
 
-@router.get("/trend/{user_id}", response_model=BurnoutTrendResponse)
+@router.get("/trend", response_model=BurnoutTrendResponse)
 async def get_burnout_trend(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     period: str = Query("30days", regex="^(7days|30days|90days)$"),
     db: Session = Depends(get_db)
 ):
     """
     Get burnout score trend over time.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Parameters:
         - period: Time period (7days, 30days, 90days)
@@ -119,6 +136,7 @@ async def get_burnout_trend(
         - Moving average
     """
     try:
+        user_id = current_user.id
         # Calculate date range
         period_days = {"7days": 7, "30days": 30, "90days": 90}[period]
         start_date = datetime.utcnow() - timedelta(days=period_days)
@@ -183,13 +201,15 @@ async def get_burnout_trend(
         raise HTTPException(status_code=500, detail=f"Failed to get trend data: {str(e)}")
 
 
-@router.get("/breakdown/{user_id}", response_model=BurnoutBreakdownResponse)
+@router.get("/breakdown", response_model=BurnoutBreakdownResponse)
 async def get_burnout_breakdown(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get detailed component breakdown of burnout score.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns:
         - Workload score
@@ -198,6 +218,7 @@ async def get_burnout_breakdown(
         - Contribution percentages
     """
     try:
+        user_id = current_user.id
         latest_analysis = db.query(BurnoutAnalysis).filter(
             BurnoutAnalysis.user_id == user_id
         ).order_by(BurnoutAnalysis.analyzed_at.desc()).first()
@@ -227,13 +248,15 @@ async def get_burnout_breakdown(
         raise HTTPException(status_code=500, detail=f"Failed to get breakdown: {str(e)}")
 
 
-@router.get("/insights/{user_id}", response_model=BurnoutInsightsResponse)
+@router.get("/insights", response_model=BurnoutInsightsResponse)
 async def get_burnout_insights(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get primary issues and insights about burnout.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns:
         - Primary contributors
@@ -242,6 +265,7 @@ async def get_burnout_insights(
         - Alert triggers
     """
     try:
+        user_id = current_user.id
         latest_analysis = db.query(BurnoutAnalysis).filter(
             BurnoutAnalysis.user_id == user_id
         ).order_by(BurnoutAnalysis.analyzed_at.desc()).first()
@@ -284,13 +308,15 @@ async def get_burnout_insights(
         raise HTTPException(status_code=500, detail=f"Failed to get insights: {str(e)}")
 
 
-@router.get("/signals/{user_id}", response_model=BurnoutSignalsResponse)
+@router.get("/signals", response_model=BurnoutSignalsResponse)
 async def get_burnout_signals(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get burnout warning signals and patterns.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns:
         - Stress indicators from sentiment analysis
@@ -299,6 +325,7 @@ async def get_burnout_signals(
         - Historical patterns
     """
     try:
+        user_id = current_user.id
         latest_analysis = db.query(BurnoutAnalysis).filter(
             BurnoutAnalysis.user_id == user_id
         ).order_by(BurnoutAnalysis.analyzed_at.desc()).first()
@@ -357,13 +384,15 @@ async def get_burnout_signals(
         raise HTTPException(status_code=500, detail=f"Failed to get signals: {str(e)}")
 
 
-@router.get("/recovery-plan/{user_id}", response_model=RecoveryPlanResponse)
+@router.get("/recovery-plan", response_model=RecoveryPlanResponse)
 async def get_recovery_plan(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get structured recovery plan based on burnout level.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns:
         - Immediate actions (24-48 hours)
@@ -372,6 +401,7 @@ async def get_recovery_plan(
         - Progress tracking metrics
     """
     try:
+        user_id = current_user.id
         latest_analysis = db.query(BurnoutAnalysis).filter(
             BurnoutAnalysis.user_id == user_id
         ).order_by(BurnoutAnalysis.analyzed_at.desc()).first()
@@ -444,9 +474,9 @@ async def get_recovery_plan(
         raise HTTPException(status_code=500, detail=f"Failed to generate recovery plan: {str(e)}")
 
 
-@router.get("/history/{user_id}")
+@router.get("/history")
 async def get_burnout_history(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     limit: int = Query(50, ge=1, le=500),
@@ -455,6 +485,8 @@ async def get_burnout_history(
 ):
     """
     Get historical burnout analysis records.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Parameters:
         - start_date: Start date (YYYY-MM-DD)
@@ -466,6 +498,7 @@ async def get_burnout_history(
         List of historical analyses
     """
     try:
+        user_id = current_user.id
         query = db.query(BurnoutAnalysis).filter(BurnoutAnalysis.user_id == user_id)
 
         if start_date:

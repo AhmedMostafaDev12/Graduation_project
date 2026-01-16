@@ -8,6 +8,16 @@ FastAPI router for managing user profiles, preferences, and constraints.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
+import sys
+from pathlib import Path
+
+# Add backend_services to path for authentication
+backend_path = Path(__file__).parent.parent.parent.parent.parent.parent / "backend_services"
+if str(backend_path) not in sys.path:
+    sys.path.insert(0, str(backend_path))
+
+from app.oauth2 import get_current_user
+from app.models import User
 
 from api.dependencies import get_db
 from api.schemas.profile_schemas import (
@@ -28,14 +38,18 @@ router = APIRouter(prefix="/api/profile", tags=["User Profile"])
 # ============================================================================
 # PROFILE ENDPOINTS
 # ============================================================================
+# NOTE: Profile creation happens automatically during signup in backend_services/app/routers/user.py
+# This API only provides GET (retrieve) and PUT (update for onboarding) endpoints
 
-@router.get("/{user_id}", response_model=UserProfileResponse)
+@router.get("", response_model=UserProfileResponse)
 async def get_user_profile(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get complete user profile including preferences and constraints.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Returns:
         - User information (name, email, role, department, timezone)
@@ -44,6 +58,7 @@ async def get_user_profile(
         - Behavioral profile (learned patterns if available)
     """
     try:
+        user_id = current_user.id
         profile_service = UserProfileService(db)
         user_profile = profile_service.get_user_profile(user_id)
 
@@ -102,7 +117,8 @@ async def get_user_profile(
             user_id=user_profile.user_id,
             full_name=user_profile.full_name,
             email=user_profile.email,
-            role=user_profile.role,
+            job_role=user_profile.job_role,
+            seniority_level=user_profile.seniority_level,
             department=user_profile.department,
             timezone=user_profile.timezone,
             preferences=preferences,
@@ -118,14 +134,16 @@ async def get_user_profile(
         raise HTTPException(status_code=500, detail=f"Failed to get user profile: {str(e)}")
 
 
-@router.put("/{user_id}")
+@router.put("")
 async def update_user_profile(
-    user_id: int,
     request: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Update user profile, preferences, or constraints.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Allows partial updates - only provided fields will be updated.
 
@@ -133,6 +151,7 @@ async def update_user_profile(
         Updated profile confirmation
     """
     try:
+        user_id = current_user.id
         profile_service = UserProfileService(db)
         user_profile = profile_service.get_user_profile(user_id)
 
@@ -147,8 +166,10 @@ async def update_user_profile(
             user_profile.full_name = request.full_name
         if request.email:
             user_profile.email = request.email
-        if request.role:
-            user_profile.role = request.role
+        if request.job_role:
+            user_profile.job_role = request.job_role
+        if request.seniority_level:
+            user_profile.seniority_level = request.seniority_level
         if request.department:
             user_profile.department = request.department
         if request.timezone:
@@ -211,14 +232,16 @@ async def update_user_profile(
         raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
 
 
-@router.post("/{user_id}/learn-patterns", response_model=LearnPatternsResponse)
+@router.post("/learn-patterns", response_model=LearnPatternsResponse)
 async def learn_behavioral_patterns(
-    user_id: int,
+    current_user: User = Depends(get_current_user),
     days: int = 30,
     db: Session = Depends(get_db)
 ):
     """
-    Trigger behavioral pattern learning for a user.
+    Trigger behavioral pattern learning for the authenticated user.
+
+    **Authentication Required**: Pass JWT token in Authorization header.
 
     Analyzes historical burnout data to identify:
     - Average workload patterns
@@ -235,6 +258,7 @@ async def learn_behavioral_patterns(
         - Last updated timestamp
     """
     try:
+        user_id = current_user.id
         # Check if user has enough historical data
         from user_profile.burnout_model import BurnoutAnalysis
 

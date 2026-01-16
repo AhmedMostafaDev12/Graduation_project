@@ -43,6 +43,8 @@ class ExtractedTask(BaseModel):
     description: Optional[str] = Field(None, description="Task description")
     priority: Optional[str] = Field(None, description="Task priority")
     deadline: Optional[str] = Field(None, description="Deadline in YYYY-MM-DD format")
+    start_time: Optional[str] = Field(None, description="Start time in HH:MM format")
+    end_time: Optional[str] = Field(None, description="End time in HH:MM format")
     assignee: Optional[str] = Field(None, max_length=100, description="Person assigned")
     category: Optional[str] = Field("general", description="Task category")
     estimated_hours: Optional[float] = Field(None, ge=0, description="Estimated hours")
@@ -322,7 +324,8 @@ class UnifiedTaskExtractor:
         """
         if processor == 'audio':
             from audio_processor import process_audio
-            tasks = process_audio(str(file_path))
+            # process_audio returns (tasks, transcript, metadata) - we only need tasks
+            tasks, _, _ = process_audio(str(file_path), translate=translate)
             return tasks if tasks else []
 
         elif processor == 'document':
@@ -337,7 +340,8 @@ class UnifiedTaskExtractor:
 
         elif processor == 'handwritten':
             from handwritten_processor import process_handwritten_notes
-            tasks = process_handwritten_notes(str(file_path), translate=translate)
+            # Note: Handwritten processor uses Groq Vision API directly, no separate translation step
+            tasks = process_handwritten_notes(str(file_path))
             return tasks if tasks else []
 
         elif processor == 'text':
@@ -359,12 +363,24 @@ class UnifiedTaskExtractor:
 
         for i, task in enumerate(raw_tasks):
             try:
+                # Skip if task is not a dictionary
+                if not isinstance(task, dict):
+                    self.warnings.append(f"Skipping task {i+1}: Not a dictionary (got {type(task).__name__})")
+                    continue
+
+                # Skip if task has no title
+                if not task.get('title'):
+                    self.warnings.append(f"Skipping task {i+1}: No title found")
+                    continue
+
                 # Create validated task
                 validated_task = ExtractedTask(
                     title=task.get('title', f'Task {i+1}'),
                     description=task.get('description'),
                     priority=task.get('priority'),
                     deadline=task.get('deadline'),
+                    start_time=task.get('start_time'),
+                    end_time=task.get('end_time'),
                     assignee=task.get('assignee'),
                     category=task.get('category', 'general'),
                     estimated_hours=task.get('estimated_hours')
@@ -396,15 +412,56 @@ class UnifiedTaskExtractor:
         """
         import sys
         import os
+        from datetime import datetime as dt, date, time
 
         # Import shared service (replaces HTTP call)
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
         from shared_services import TaskService
 
+        def parse_time_to_datetime(time_str: str, deadline_str: str = None) -> Optional[dt]:
+            """
+            Convert HH:MM time string to datetime object.
+            If deadline provided, use that date; otherwise use today.
+            """
+            if not time_str:
+                return None
+
+            try:
+                # Parse time string (HH:MM format)
+                hour, minute = map(int, time_str.split(':'))
+
+                # Determine the date to use
+                if deadline_str:
+                    try:
+                        # Parse deadline (YYYY-MM-DD format)
+                        deadline_date = dt.strptime(deadline_str, '%Y-%m-%d').date()
+                    except:
+                        deadline_date = date.today()
+                else:
+                    deadline_date = date.today()
+
+                # Combine date and time
+                return dt.combine(deadline_date, time(hour=hour, minute=minute))
+            except Exception as e:
+                print(f"Warning: Failed to parse time '{time_str}': {e}")
+                return None
+
         tasks_saved = 0
 
         try:
             for task in tasks:
+                # Parse deadline to datetime if it's a string
+                due_date_obj = None
+                if task.deadline:
+                    try:
+                        due_date_obj = dt.strptime(task.deadline, '%Y-%m-%d')
+                    except:
+                        pass
+
+                # Convert time strings to datetime objects
+                start_time_obj = parse_time_to_datetime(task.start_time, task.deadline)
+                end_time_obj = parse_time_to_datetime(task.end_time, task.deadline)
+
                 # Prepare task data for backend API
                 task_data = {
                     "title": task.title,
@@ -413,7 +470,9 @@ class UnifiedTaskExtractor:
                     "status": "Todo",
                     "priority": task.priority or "MEDIUM",
                     "category": task.category or "general",
-                    "due_date": task.deadline if task.deadline else None,
+                    "due_date": due_date_obj,
+                    "start_time": start_time_obj,
+                    "end_time": end_time_obj,
                     "assigned_to": task.assignee,
                     "can_delegate": True,
                     "estimated_hours": task.estimated_hours,

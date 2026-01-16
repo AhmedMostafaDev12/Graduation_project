@@ -110,5 +110,5 @@ if __name__ == "__main__":
     # test_video("test_files/sample.mp4")
 
     # Test audio
-    test_audio(r"C:\Users\USER\Documents\Sound Recordings\lecture.m4a")
+    test_audio(r"C:\Users\USER\Documents\Sound Recordings\Recording (4).m4a")
     print("\n" + "="*80)

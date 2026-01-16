@@ -132,8 +132,13 @@ async def chat_audio(
             content = await audio.read()
             f.write(content)
 
-        # Transcribe audio using Vosk (reuse from task extraction)
-        from task_extraction.audio_processor import AudioProcessor
+        # Transcribe audio using AssemblyAI (reuse from task extraction)
+        import sys
+        task_extraction_path = os.path.join(os.path.dirname(__file__), '..', 'task_extraction')
+        if str(task_extraction_path) not in sys.path:
+            sys.path.insert(0, str(task_extraction_path))
+
+        from audio_processor import AudioProcessor
 
         audio_processor = AudioProcessor()
         transcript = audio_processor.transcribe_audio(audio_path)

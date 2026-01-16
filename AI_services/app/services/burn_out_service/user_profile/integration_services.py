@@ -21,14 +21,30 @@ from typing import Dict, List, Optional
 from datetime import datetime, date
 
 # Import all components
-from Analysis_engine_layer import (
-    WorkloadAnalyzer,
-    UserMetrics,
-    SentimentAnalyzer,
-    QualitativeData,
-    BurnoutEngine,
-    learn_behavioral_patterns
-)
+try:
+    from Analysis_engine_layer import (
+        WorkloadAnalyzer,
+        UserMetrics,
+        SentimentAnalyzer,
+        QualitativeData,
+        BurnoutEngine,
+        learn_behavioral_patterns
+    )
+except ImportError:
+    # Fallback for when imported from unified system
+    import sys
+    from pathlib import Path
+    burnout_service_path = Path(__file__).parent.parent
+    if str(burnout_service_path) not in sys.path:
+        sys.path.insert(0, str(burnout_service_path))
+    from Analysis_engine_layer import (
+        WorkloadAnalyzer,
+        UserMetrics,
+        SentimentAnalyzer,
+        QualitativeData,
+        BurnoutEngine,
+        learn_behavioral_patterns
+    )
 from .user_profile_service import UserProfileService
 from .burnout_model import BurnoutAnalysis, store_burnout_analysis
 
@@ -100,11 +116,48 @@ class BurnoutSystemIntegration:
 
         # STEP 2: Sentiment Analysis
         print("  [STEP 2] Analyzing sentiment...")
-        sentiment_result = self.sentiment_analyzer.analyze(qualitative_data)
+        if qualitative_data and qualitative_data.has_data():
+            sentiment_result = self.sentiment_analyzer.analyze(qualitative_data)
+        else:
+            print("  [STEP 2] No qualitative data available - using neutral sentiment")
+            # Create a neutral sentiment result when no data is available
+            from Analysis_engine_layer.sentiment_analyzer import SentimentAnalysisResult, BurnoutSignals
+            sentiment_result = SentimentAnalysisResult(
+                sentiment_score=0.0,
+                stress_indicators=[],
+                burnout_signals=BurnoutSignals(
+                    emotional_exhaustion=False,
+                    overwhelm=False,
+                    sleep_concerns=False,
+                    negative_outlook=False,
+                    health_concerns=False
+                ),
+                confidence=0,
+                key_concerns=[],
+                sentiment_adjustment=0
+            )
 
         # STEP 3: Get user profile context
         print("  [STEP 3] Loading user profile...")
         user_profile = self.profile_service.get_user_profile(user_id)
+
+        # Auto-create profile if doesn't exist (handles edge case where user hasn't onboarded)
+        if not user_profile:
+            print(f"  [STEP 3] User {user_id} has no profile - creating minimal profile...")
+            from user_profile.user_profile_models import UserProfile
+
+            # Create minimal profile with just user_id
+            minimal_profile = UserProfile(
+                user_id=user_id,
+                full_name=f"User {user_id}",
+                email=f"user{user_id}@example.com",
+                timezone="UTC"
+            )
+            self.db.add(minimal_profile)
+            self.db.commit()
+            print(f"  [STEP 3] Created minimal profile for user {user_id}")
+            user_profile = self.profile_service.get_user_profile(user_id)
+
         complete_profile = self.profile_service.get_complete_profile_for_llm(user_id)
 
         # Get previous score for trend analysis

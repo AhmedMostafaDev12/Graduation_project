@@ -8,11 +8,11 @@ their applications, and user feedback.
 
 from sqlalchemy import Column, Integer, String, Text, Float, Boolean, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-Base = declarative_base()
+# Import shared base
+from .database_base import Base
 
 
 class Recommendation(Base):
@@ -25,7 +25,7 @@ class Recommendation(Base):
     __tablename__ = "recommendations"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user_profiles.user_id', ondelete='CASCADE'), nullable=False)
     burnout_analysis_id = Column(Integer, ForeignKey('burnout_analyses.id', ondelete='SET NULL'), nullable=True)
 
     # Recommendation content
@@ -67,7 +67,7 @@ class RecommendationApplication(Base):
 
     id = Column(Integer, primary_key=True)
     recommendation_id = Column(Integer, ForeignKey('recommendations.id', ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('user_profiles.user_id', ondelete='CASCADE'), nullable=False)
 
     # Application details
     applied_at = Column(DateTime, default=datetime.utcnow)
@@ -115,18 +115,26 @@ class RecommendationActionItem(Base):
 
     id = Column(Integer, primary_key=True)
     recommendation_id = Column(Integer, ForeignKey('recommendations.id', ondelete='CASCADE'), nullable=False)
-    task_id = Column(Integer, ForeignKey('tasks.id', ondelete='SET NULL'), nullable=True)
 
     # Action details
     action_text = Column(Text, nullable=False)
-    action_order = Column(Integer)  # 1st, 2nd, 3rd action step
+    order_index = Column(Integer)  # 1st, 2nd, 3rd action step (matches DB schema)
+    auto_applicable = Column(Boolean, default=False)
 
-    # Completion tracking
-    completed = Column(Boolean, default=False)
-    completed_at = Column(DateTime)
+    # Application details
+    action_type = Column(String(50))
+    action_params = Column(JSONB)
 
-    # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
+    # Status
+    applied = Column(Boolean, default=False)
+    applied_at = Column(DateTime)
+    result_status = Column(String(50))
+    result_message = Column(Text)
+
+    # Created resources (references tasks table in backend_services - different Base, no FK)
+    created_task_id = Column(Integer)
+    created_event_id = Column(String(255))
+    task_id = Column(Integer)  # Also in DB schema
 
     # Relationships
     recommendation = relationship("Recommendation", back_populates="action_items")
@@ -143,7 +151,8 @@ class RecommendationFeedback(Base):
 
     id = Column(Integer, primary_key=True)
     recommendation_id = Column(Integer, ForeignKey('recommendations.id', ondelete='CASCADE'), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    # user_id references users table in backend_services (different Base), so no FK constraint
+    user_id = Column(Integer, nullable=False)
 
     # Feedback details
     helpful = Column(Boolean)

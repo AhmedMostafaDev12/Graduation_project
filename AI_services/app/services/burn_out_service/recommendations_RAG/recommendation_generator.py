@@ -64,7 +64,7 @@ class RecommendationEngineOutput(BaseModel):
 class GeneratorConfig:
     """Configuration for recommendation generator"""
     # LLM settings
-    llm_model: str = "llama-3.1-70b-versatile"
+    llm_model: str = "llama-3.3-70b-versatile"
     temperature: float = 0.3
     max_output_tokens: int = 2048
 
@@ -72,7 +72,7 @@ class GeneratorConfig:
     def from_env(cls) -> 'GeneratorConfig':
         """Create config from environment variables"""
         return cls(
-            llm_model=os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
+            llm_model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
             temperature=float(os.getenv("LLM_TEMPERATURE", "0.3")),
             max_output_tokens=int(os.getenv("LLM_MAX_TOKENS", "2048"))
         )

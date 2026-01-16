@@ -167,7 +167,7 @@ def analyze_sentiment_with_llm(text: str) -> Dict[str, Any]:
         qual_data = QualitativeData(user_check_ins=[text])
 
         # Run analysis
-        result = analyzer.analyze_qualitative_data(qual_data)
+        result = analyzer.analyze(qual_data)
 
         # Extract sentiment label from score
         score = result.sentiment_score
@@ -219,7 +219,7 @@ def get_task_statistics(user_id: int, db: Session) -> Dict[str, Any]:
     """
     Get comprehensive task statistics for the user.
 
-    Uses the shared service instead of HTTP call.
+    Queries tasks directly from database for real-time accurate data.
 
     Returns:
     - Total tasks
@@ -229,33 +229,108 @@ def get_task_statistics(user_id: int, db: Session) -> Dict[str, Any]:
     - Work hours breakdown
     """
     try:
-        # Use shared service instead of HTTP call
-        data = BurnoutService.get_workload_breakdown(user_id, db)
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
 
-        if data.get('status') == 'failed':
-            return {
-                "success": False,
-                "error": data.get('error', 'Workload breakdown failed')
-            }
+        # Import Task model
+        import sys
+        backend_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'backend_services')
+        if str(backend_path) not in sys.path:
+            sys.path.insert(0, str(backend_path))
 
-        task_breakdown = data.get('task_breakdown', {})
-        time_breakdown = data.get('time_breakdown', {})
+        from app.models import Task
+
+        # Get current date
+        now = datetime.now()
+        today_start = datetime(now.year, now.month, now.day)
+        week_end = today_start + timedelta(days=7)
+
+        # Query active tasks (not completed)
+        active_tasks_query = db.query(Task).filter(
+            Task.user_id == user_id,
+            Task.status.notin_(['Completed', 'Cancelled', 'Archived'])
+        )
+
+        total_tasks = active_tasks_query.count()
+
+        # Overdue tasks
+        overdue_tasks = active_tasks_query.filter(
+            Task.due_date < now,
+            Task.due_date.isnot(None)
+        ).count()
+
+        # Tasks due this week
+        due_this_week = active_tasks_query.filter(
+            Task.due_date >= today_start,
+            Task.due_date < week_end,
+            Task.due_date.isnot(None)
+        ).count()
+
+        # Completion rate (last 30 days)
+        thirty_days_ago = now - timedelta(days=30)
+
+        total_recent = db.query(Task).filter(
+            Task.user_id == user_id,
+            Task.created_at >= thirty_days_ago
+        ).count()
+
+        completed_recent = db.query(Task).filter(
+            Task.user_id == user_id,
+            Task.created_at >= thirty_days_ago,
+            Task.status == 'Completed'
+        ).count()
+
+        completion_rate = (completed_recent / total_recent * 100) if total_recent > 0 else 0
+
+        # Work hours today
+        work_hours_today = db.query(func.sum(Task.estimated_hours)).filter(
+            Task.user_id == user_id,
+            Task.start_time >= today_start,
+            Task.start_time < today_start + timedelta(days=1),
+            Task.estimated_hours.isnot(None)
+        ).scalar() or 0
+
+        # Work hours this week
+        week_start = today_start - timedelta(days=now.weekday())
+        work_hours_week = db.query(func.sum(Task.estimated_hours)).filter(
+            Task.user_id == user_id,
+            Task.start_time >= week_start,
+            Task.start_time < week_start + timedelta(days=7),
+            Task.estimated_hours.isnot(None)
+        ).scalar() or 0
+
+        # Meeting hours today
+        meeting_hours_today = db.query(func.sum(Task.estimated_hours)).filter(
+            Task.user_id == user_id,
+            Task.category == 'meeting',
+            Task.start_time >= today_start,
+            Task.start_time < today_start + timedelta(days=1),
+            Task.estimated_hours.isnot(None)
+        ).scalar() or 0
 
         return {
             "success": True,
-            "total_tasks": task_breakdown.get('active_tasks', 0),
-            "overdue_tasks": task_breakdown.get('overdue_tasks', 0),
-            "due_this_week": task_breakdown.get('tasks_due_this_week', 0),
-            "completion_rate": task_breakdown.get('completion_rate', 0),
-            "work_hours_today": time_breakdown.get('work_hours_today', 0),
-            "work_hours_week": time_breakdown.get('work_hours_this_week', 0),
-            "meeting_hours_today": time_breakdown.get('meeting_hours_today', 0)
+            "total_tasks": total_tasks,
+            "overdue_tasks": overdue_tasks,
+            "due_this_week": due_this_week,
+            "completion_rate": completion_rate,
+            "work_hours_today": float(work_hours_today),
+            "work_hours_week": float(work_hours_week),
+            "meeting_hours_today": float(meeting_hours_today)
         }
 
     except Exception as e:
+        logger.error(f"Task statistics error: {e}")
         return {
             "success": False,
-            "error": str(e)
+            "error": str(e),
+            "total_tasks": 0,
+            "overdue_tasks": 0,
+            "due_this_week": 0,
+            "completion_rate": 0,
+            "work_hours_today": 0,
+            "work_hours_week": 0,
+            "meeting_hours_today": 0
         }
 
 

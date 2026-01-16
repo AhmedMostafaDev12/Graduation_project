@@ -7,6 +7,7 @@ import requests
 
 from langgraph.graph import add_messages, StateGraph, END
 from langchain_community.chat_models import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.tools import tool
@@ -46,13 +47,19 @@ def search_notebook_tool(notebook_id: str, query: str, pages: Optional[str] = No
     if not doc_ids:
         return "Notebook is empty."
 
+    logger.info(f"Searching notebook {notebook_id} with {len(doc_ids)} documents. Doc IDs: {doc_ids}")
+
     all_results = []
-    for doc_id in doc_ids:
+    for idx, doc_id in enumerate(doc_ids):
         try:
+            logger.info(f"Searching document {idx+1}/{len(doc_ids)}: {doc_id}")
             results = processor.search_document(doc_id=doc_id, query=query, k=3)
+            logger.info(f"Document {doc_id} returned {len(results)} results")
             all_results.extend(results)
         except Exception as e:
             logger.error(f"Error searching in doc {doc_id}: {e}")
+
+    logger.info(f"Total results from all documents: {len(all_results)}")
 
     if not all_results:
         return "No relevant information found in the notebook."
@@ -97,22 +104,22 @@ Provide a clear, well-structured summary."""
 @tool
 def generate_quiz_tool(notebook_id: str, num_questions: int = 5, difficulty: str = "medium") -> str:
     """
-    Generate quiz questions from the entire notebook.
+    Generate quiz questions from the entire notebook in JSON format.
     """
     notebooks = load_notebooks()
     if notebook_id not in notebooks:
-        return "Error: Notebook not found."
+        return json.dumps({"error": "Notebook not found."})
 
     doc_ids = notebooks[notebook_id].get("doc_ids", [])
     if not doc_ids:
-        return "Notebook is empty."
+        return json.dumps({"error": "Notebook is empty."})
 
     full_text = ""
     for doc_id in doc_ids:
         full_text += processor.get_full_text(doc_id) + "\n\n"
 
     if not full_text.strip():
-        return "No text content found in the notebook to create a quiz from."
+        return json.dumps({"error": "No text content found in the notebook to create a quiz from."})
 
     num_questions = max(1, min(10, num_questions))
     difficulty_descriptions = {
@@ -122,20 +129,40 @@ def generate_quiz_tool(notebook_id: str, num_questions: int = 5, difficulty: str
     }
     diff_desc = difficulty_descriptions.get(difficulty, difficulty_descriptions["medium"])
 
-    return f"""Generate exactly {num_questions} multiple-choice quiz questions at {difficulty} difficulty ({diff_desc}) based on the notebook's content:
+    return f"""Generate exactly {num_questions} multiple-choice quiz questions at {difficulty} difficulty ({diff_desc}) based on the notebook's content.
 
 CONTENT FOR QUIZ:
 {full_text}
 
-FORMAT EACH QUESTION EXACTLY AS FOLLOWS:
+CRITICAL: Return ONLY valid JSON in this EXACT format (no additional text):
 
-Question 1: [Question]
-A) [Option]
-B) [Option]
-C) [Option]
-D) [Option]
-Correct Answer: [Letter]
-Explanation: [Brief explanation]"""
+{{
+  "quiz": {{
+    "title": "Quiz on [topic from content]",
+    "difficulty": "{difficulty}",
+    "total_questions": {num_questions},
+    "questions": [
+      {{
+        "id": 1,
+        "question": "Question text here?",
+        "options": [
+          {{"label": "A", "text": "First option"}},
+          {{"label": "B", "text": "Second option"}},
+          {{"label": "C", "text": "Third option"}},
+          {{"label": "D", "text": "Fourth option"}}
+        ],
+        "correct_answer": "A",
+        "explanation": "Brief explanation why this is correct"
+      }}
+    ]
+  }}
+}}
+
+IMPORTANT:
+1. Return ONLY the JSON object, no markdown, no explanations
+2. Ensure all questions have exactly 4 options (A, B, C, D)
+3. correct_answer must be one of: "A", "B", "C", or "D"
+4. Make questions relevant to the actual content provided"""
 
 @tool
 def extract_tasks_tool(notebook_id: str) -> str:
@@ -209,7 +236,20 @@ class AgentState(TypedDict):
 
 tools = [search_notebook_tool, generate_summary_tool, generate_quiz_tool, extract_tasks_tool, process_link_tool]
 
-llm = ChatOllama(model=os.getenv("OLLAMA_MODEL", "llama3.1:8b"), temperature=0.7)
+# Use Groq instead of Ollama for better reliability (cloud-based)
+# Ollama requires local installation and running service
+try:
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        groq_api_key=os.getenv("GROQ_API_KEY"),
+        temperature=0.7
+    )
+    logger.info("Using Groq LLM for notebook chat")
+except Exception as e:
+    logger.warning(f"Failed to initialize Groq, falling back to Ollama: {e}")
+    llm = ChatOllama(model=os.getenv("OLLAMA_MODEL", "llama3.1:8b"), temperature=0.7)
+    logger.info("Using Ollama LLM for notebook chat")
+
 memory = MemorySaver()
 
 async def agent_node(state: AgentState):
@@ -251,25 +291,33 @@ async def agent_node(state: AgentState):
         result = tool_map[tool_to_use].invoke(tool_args)
 
         # Create an AI response with the tool result
+        user_question = messages[-1].content if isinstance(messages[-1], HumanMessage) else ''
+
         system_message = SystemMessage(content=f"""You are an intelligent study assistant.
 
 A tool has been executed with the following result:
 {result}
 
-Based on this information, provide a helpful response to the user's question: "{messages[-1].content if isinstance(messages[-1], HumanMessage) else ''}"
+Based on this information, provide a helpful response to the user's question: "{user_question}"
 
 Be clear, educational, and helpful.""")
 
-        full_messages = [system_message]
+        # Include both system message and user message for context
+        full_messages = [system_message, HumanMessage(content=user_question)]
 
         try:
-            response = await llm.ainvoke(full_messages)
-            response_content = response.content if hasattr(response, 'content') else str(response)
+            # Use streaming for real-time word-by-word response
+            response_content = ""
+            async for chunk in llm.astream(full_messages):
+                if hasattr(chunk, 'content'):
+                    response_content += chunk.content
+
+            logger.info(f"LLM response content length: {len(response_content)}")
         except Exception as e:
             logger.error(f"Error during LLM invocation: {str(e)}")
-            response_content = "I encountered an error while processing your request."
+            response_content = f"I found some information: {result}"
 
-        return {"messages": [response if isinstance(response, AIMessage) else AIMessage(content=response_content)]}
+        return {"messages": [AIMessage(content=response_content)]}
     else:
         # No tool needed, just respond normally
         system_message = SystemMessage(content=f"""You are an intelligent study assistant helping users with their notebook.

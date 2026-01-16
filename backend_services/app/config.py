@@ -6,40 +6,56 @@ import os
 
 class Settings(BaseSettings):
     backend_base_url: str
-    app_sender_email: str 
-    sendgrid_api_key: str 
-    
-    upload_files_directory: str 
-    upload_session_expire_minutes: int 
-    session_cleanup_refresh_minutes: int 
-    
+    app_sender_email: str
+    sendgrid_api_key: str
+
+    upload_files_directory: str
+    upload_session_expire_minutes: int
+    session_cleanup_refresh_minutes: int
+
     @cached_property
     def upload_files_dir(self) -> str:
         return self.upload_files_dir if self.upload_files_directory else os.getcwd() + "\\Uploaded_files"
 
-    encryption_key: str 
+    encryption_key: str
     secret_key: str
     algorithm: str
     access_token_expire_minutes: int
-    refresh_token_expire_days: int 
+    refresh_token_expire_days: int
     reset_password_token_expire_minutes: int
     email_verification_token_expire_minutes: int
-    
-    database_hostname: str
-    database_port: str
-    database_password: str
-    database_name: str
-    database_username: str
 
-    @cached_property
-    def database_url(self) -> str:
-        """Auto-generate full database URL for SQLAlchemy."""
+    # Database configuration - can use individual components or full URL
+    database_hostname: Optional[str] = None
+    database_port: Optional[str] = None
+    database_password: Optional[str] = None
+    database_name: Optional[str] = None
+    database_username: Optional[str] = None
+    database_url: Optional[str] = None
+
+    def get_database_url(self) -> str:
+        """Get database URL from either direct URL or individual components."""
+        if self.database_url:
+            return self.database_url
         return (
             f"postgresql://{self.database_username}:{self.database_password}"
             f"@{self.database_hostname}:{self.database_port}/{self.database_name}")
 
     # Vector database for AI services (optional - only for notebook library)
     VECTOR_DB_URL: Optional[str] = None
+
+    # AI Service API Keys
+    google_api_key: Optional[str] = None
+    tavily_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    voyage_api_key: Optional[str] = None
+    assemblyai_api_key: Optional[str] = None
+
+    # LangSmith configuration
+    langsmith_tracing: Optional[str] = None
+    langsmith_endpoint: Optional[str] = None
+    langsmith_api_key: Optional[str] = None
+    langsmith_project: Optional[str] = None
 
     facebook_client_id: str 
     facebook_client_secret: str 

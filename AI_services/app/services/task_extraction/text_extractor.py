@@ -10,47 +10,84 @@ import os
 load_dotenv()
 
 class Task(BaseModel):
-    title: str = Field(description="Short task title")
-    description: str = Field(description="Detailed description")
-    assignee: Optional[str] = Field(description="Person assigned", default=None)
-    deadline: Optional[str] = Field(description="Deadline in YYYY-MM-DD format", default=None)
-    priority: Optional[str] = Field(description="URGENT, HIGH, MEDIUM, or LOW")
-    category: Optional[str] = Field(description="assignment, meeting, exam, project, or general",default="general")
+    title: str = Field(description="Short task title (what needs to be done)")
+    description: str = Field(description="Additional context, notes, or details about the task")
+    assignee: Optional[str] = Field(description="Person assigned to this task", default=None)
+    deadline: Optional[str] = Field(description="Due date or deadline in YYYY-MM-DD format. Extract from phrases like 'by Friday', 'due tomorrow', 'on Dec 15', etc.", default=None)
+    start_time: Optional[str] = Field(description="Start time in HH:MM format (24-hour). Extract from phrases like 'from 5:00', 'starting at 3pm', 'at 9:30', etc.", default=None)
+    end_time: Optional[str] = Field(description="End time in HH:MM format (24-hour). Extract from phrases like 'to 6:00', 'until 5pm', 'ending at 10:30', etc.", default=None)
+    estimated_hours: Optional[float] = Field(description="Estimated duration in hours. Calculate from time ranges (e.g., '5:00 to 6:00' = 1 hour) or explicit durations", default=None)
+    priority: Optional[str] = Field(description="URGENT, HIGH, MEDIUM, or LOW. Infer from words like 'urgent', 'ASAP', 'important', 'soon'", default=None)
+    category: Optional[str] = Field(description="assignment, meeting, exam, project, or general. Infer from context", default="general")
 
 class TaskList(BaseModel):
     tasks: List[Task]
 
 # Use Groq API for text processing (fast and cloud-based)
 llm = ChatGroq(
-    model="llama-3.1-70b-versatile",
+    model="llama-3.3-70b-versatile",
     groq_api_key=os.getenv("GROQ_API_KEY"),
     temperature=0.3,
     model_kwargs={"response_format": {"type": "json_object"}}
 )
 
 llm_text = ChatGroq(
-    model="llama-3.1-70b-versatile",
+    model="llama-3.3-70b-versatile",
     groq_api_key=os.getenv("GROQ_API_KEY"),
     temperature=0.5
 )  # For translation without JSON format
 
 parser = PydanticOutputParser(pydantic_object=TaskList)
-prompt = PromptTemplate(template="""Extract all actionable tasks from the following text.
+prompt = PromptTemplate(template="""You are an expert task extraction AI. Extract all actionable tasks from the text with precise temporal information.
 
 Text: {text}
 
-Instructions:
-- Find all tasks, assignments, deadlines, and action items
-- Return ONLY valid JSON in this exact format:
+CRITICAL INSTRUCTIONS FOR TIME EXTRACTION:
+1. **Start Time & End Time**: When the user mentions time ranges like "from 5:00 to 6:00", "3pm to 4pm", "at 9:30 until 10:00":
+   - Extract start_time in 24-hour format (HH:MM)
+   - Extract end_time in 24-hour format (HH:MM)
+   - Convert PM times correctly (5:00 PM → 17:00, 6:00 PM → 18:00)
+
+2. **Estimated Hours**: Calculate duration from time ranges:
+   - "5:00 to 6:00" → 1 hour
+   - "3pm to 5pm" → 2 hours
+   - If explicit duration mentioned ("2 hour meeting"), use that
+
+3. **Deadline/Due Date**: Extract dates in YYYY-MM-DD format from phrases like:
+   - "by Friday" → calculate the date
+   - "due tomorrow" → calculate tomorrow's date
+   - "on January 15" → convert to YYYY-MM-DD
+   - If only time mentioned (no date), set deadline to null
+
+4. **Title vs Description**:
+   - Title: What needs to be done (short, actionable)
+   - Description: Only additional context NOT already in other fields (location, notes, etc.)
+   - DO NOT put time/date information in description if it belongs in start_time/end_time/deadline
+
+5. **Priority**: Infer from urgency words:
+   - "urgent", "ASAP", "immediately" → URGENT
+   - "important", "soon", "priority" → HIGH
+   - Everything else → MEDIUM or LOW
+
+6. **Category**: Infer from context:
+   - Sports, games → could be "meeting" (if scheduled) or "general"
+   - Work tasks → "assignment" or "project"
+   - Exams, tests → "exam"
+   - Meetings, calls → "meeting"
+
+Return ONLY valid JSON in this exact format:
 {{
   "tasks": [
     {{
       "title": "task title",
-      "description": "detailed description",
+      "description": "additional notes (NOT times/dates)",
       "assignee": "person name or null",
       "deadline": "YYYY-MM-DD or null",
-      "priority": "URGENT, HIGH, MEDIUM, LOW, or null",
-      "category": "assignment, meeting, exam, project, or general"
+      "start_time": "HH:MM or null",
+      "end_time": "HH:MM or null",
+      "estimated_hours": float or null,
+      "priority": "URGENT|HIGH|MEDIUM|LOW or null",
+      "category": "assignment|meeting|exam|project|general"
     }}
   ]
 }}
@@ -82,7 +119,10 @@ Text: {text}
 
 English translation:"""
 
-        enhanced_text = llm_text.invoke(translation_prompt)
+        response = llm_text.invoke(translation_prompt)
+
+        # Extract content from AIMessage object
+        enhanced_text = response.content if hasattr(response, 'content') else str(response)
 
         # Check if result is valid
         if enhanced_text and len(enhanced_text.strip()) > 0:
