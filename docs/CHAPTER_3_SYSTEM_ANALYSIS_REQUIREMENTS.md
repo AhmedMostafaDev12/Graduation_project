@@ -1,723 +1,289 @@
 # 3. SYSTEM ANALYSIS AND REQUIREMENTS
 
-This chapter presents a comprehensive analysis of the Sentry AI system, including the examination of current approaches to burnout management, the proposed system solution, feasibility assessment, and detailed functional and non-functional requirements. Use case diagrams and descriptions provide a structured view of system interactions.
+This chapter presents an analysis of the current approaches to burnout management, identifies their limitations, and defines the requirements for the Sentry AI system. The analysis covers feasibility assessment, functional and non-functional requirements, and provides use case models to illustrate system interactions.
 
 ---
 
-## 3.1 System Analysis
+## 3.1 Current System Analysis
 
-### 3.1.1 Current System Analysis
+Burnout management today relies on fragmented, disconnected approaches that fail to address the problem comprehensively.
 
-Currently, individuals and organizations rely on fragmented approaches to address burnout:
+**Manual Self-Assessment** remains the most common approach, where individuals periodically complete burnout questionnaires such as the Maslach Burnout Inventory. However, these assessments provide only static snapshots without continuous monitoring. They require conscious effort from users who are already overwhelmed, leading to inconsistent tracking and late detection of burnout symptoms.
 
-**Manual Self-Assessment:**
-- Users periodically complete burnout questionnaires (e.g., MBI)
-- Results are static snapshots without continuous monitoring
-- No integration with actual workload data
-- Requires conscious effort and is often neglected
+**Generic Wellness Applications** like Headspace and Calm have gained popularity for stress management. While these apps provide valuable meditation and relaxation content, they operate in complete isolation from the user's actual work life. They cannot see your calendar, don't know about your deadlines, and provide the same generic advice to everyone regardless of their specific situation. A recommendation to "take deep breaths" offers little help when you have three back-to-back meetings and an urgent deadline.
 
-**Generic Wellness Applications:**
-- Apps like Headspace and Calm provide meditation and relaxation content
-- One-size-fits-all recommendations regardless of individual context
-- No connection to task management or calendar systems
-- Focus on symptoms rather than root causes
+**Productivity Tools** such as Todoist, Asana, and Google Calendar help users organize their work but remain completely unaware of health implications. These tools will happily let you schedule 12 hours of meetings in a single day without any warning. They track tasks without considering whether the workload is sustainable, creating a disconnect between productivity management and well-being.
 
-**Separate Productivity Tools:**
-- Task managers (Todoist, Asana) track work without health awareness
-- Calendar apps schedule meetings without workload consideration
-- No burnout indicators or preventive alerts
-- Users must manually recognize overload patterns
+**Organizational Wellness Programs** typically consist of annual surveys and generic wellness initiatives. By the time an annual survey identifies burnout, employees have often been suffering for months. These programs are reactive rather than proactive, and their one-size-fits-all approach fails to address individual needs.
 
-**Organizational Approaches:**
-- Annual employee wellness surveys
-- Reactive intervention after burnout symptoms appear
-- Generic wellness programs without personalization
-- Limited real-time visibility into team workload
-
-**Limitations of Current Approaches:**
-
-| Limitation | Impact |
-|------------|--------|
-| No real-time monitoring | Burnout detected too late |
-| Generic recommendations | Low user engagement and compliance |
-| Disconnected data sources | Incomplete picture of burnout factors |
-| Manual data entry required | User burden reduces adoption |
-| No personalization | Irrelevant suggestions ignored |
-| Reactive rather than proactive | Intervention after damage occurs |
-
-### 3.1.2 Proposed System Analysis
-
-Sentry AI addresses these limitations through an integrated, AI-powered approach:
-
-**Automated Data Collection:**
-- Direct integration with task databases and calendar systems
-- Automatic metric calculation (no manual entry required)
-- Continuous monitoring rather than periodic snapshots
-- Qualitative data capture through AI companion conversations
-
-**Multi-Dimensional Analysis:**
-- Quantitative workload analysis (tasks, meetings, deadlines)
-- Qualitative sentiment analysis (emotional check-ins, diary entries)
-- Behavioral pattern learning over time
-- Comprehensive burnout scoring with trend detection
-
-**Evidence-Based Recommendations:**
-- RAG retrieval from curated strategy guidebook
-- Grounded in validated psychological research
-- Event-specific guidance referencing actual calendar and tasks
-- Personalized to user role, preferences, and constraints
-
-**Conversational AI Support:**
-- Natural language interaction through AI companion
-- Emotional support and empathetic responses
-- Task creation through conversation
-- Accessible mental health guidance
-
-**Multi-Modal Task Extraction:**
-- Process audio recordings, documents, images, handwritten notes
-- Automatic task database population
-- Reduced manual data entry burden
-- Support for diverse input preferences
-
-### 3.1.3 Feasibility Study
-
-**Technical Feasibility:**
-
-| Component | Technology | Availability |
-|-----------|------------|--------------|
-| LLM Processing | Groq API (Llama 3.1) | ✓ Available |
-| Vector Database | PostgreSQL + PGVector | ✓ Available |
-| Embeddings | Voyage AI | ✓ Available |
-| Audio Transcription | AssemblyAI | ✓ Available |
-| Document Processing | Unstructured.io | ✓ Available |
-| OCR | Tesseract | ✓ Open Source |
-| API Framework | FastAPI | ✓ Open Source |
-| Agent Framework | LangGraph | ✓ Available |
-
-The system leverages mature, well-documented technologies with active community support. All components are either open-source or available through affordable API services.
-
-**Operational Feasibility:**
-- Users interact through familiar interfaces (chat, file upload)
-- Minimal training required for basic functionality
-- Integrates with existing workflow rather than replacing it
-- Gradual adoption possible (start with one service, expand over time)
-
-**Economic Feasibility:**
-- Cloud deployment enables pay-per-use pricing
-- Open-source components minimize licensing costs
-- API costs scale with usage (cost-effective for small deployments)
-- Potential ROI through reduced burnout-related productivity loss
+The fundamental problem with all these approaches is fragmentation. Burnout results from the interaction of multiple factors—workload, deadlines, meetings, emotional state, personal constraints—yet existing solutions analyze these factors in isolation or ignore them entirely.
 
 ---
 
-## 3.2 Functional Requirements
+## 3.2 Proposed System Analysis
 
-This section details the functional requirements organized by system service.
+Sentry AI addresses these limitations through an integrated, AI-powered approach that connects the dots between workload, emotional state, and personalized intervention.
 
-### 3.2.1 User Authentication and Management
+**Automated Data Collection** eliminates the burden of manual tracking. The system integrates directly with task databases and calendar systems, automatically calculating metrics like meeting density, overdue tasks, and workload trends. Users don't need to fill out questionnaires or manually log their activities—the system understands their workload by observing their actual commitments.
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-1.1 | System shall allow users to register with email and password | High |
-| FR-1.2 | System shall support OAuth authentication (Google, Facebook, Apple) | Medium |
-| FR-1.3 | System shall authenticate users using JWT tokens | High |
-| FR-1.4 | System shall allow users to reset password via email | High |
-| FR-1.5 | System shall maintain user sessions with configurable expiration | Medium |
-| FR-1.6 | System shall allow users to update profile information | Medium |
-| FR-1.7 | System shall support email verification for new accounts | Medium |
+**Multi-Dimensional Analysis** combines quantitative and qualitative signals. The system doesn't just count tasks; it analyzes emotional check-ins and diary entries to understand how users feel about their work. This combination provides a more accurate picture of burnout risk than either approach alone.
 
-### 3.2.2 Task and Calendar Management
+**Evidence-Based Recommendations** ensure that every suggestion is grounded in validated psychological research. The RAG architecture retrieves strategies from a curated guidebook rather than generating generic advice. When the system recommends time-blocking or meeting batching, it's drawing from proven techniques—not hallucinating plausible-sounding but unsupported suggestions.
 
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-2.1 | System shall allow users to create, read, update, and delete tasks | High |
-| FR-2.2 | System shall support task attributes: title, description, priority, due date, status | High |
-| FR-2.3 | System shall support meeting/event entries with start time, end time, attendees | High |
-| FR-2.4 | System shall mark tasks as delegatable or non-delegatable | Medium |
-| FR-2.5 | System shall mark meetings as optional or required | Medium |
-| FR-2.6 | System shall track task completion status and history | High |
-| FR-2.7 | System shall calculate task statistics (total, overdue, due this week) | High |
-| FR-2.8 | System shall support recurring meetings | Medium |
-| FR-2.9 | System shall allow task assignment to team members | Medium |
+**Event-Specific Guidance** transforms abstract advice into immediate action. Instead of telling users to "reduce meetings," Sentry AI identifies specific meetings that can be cancelled or shortened. Instead of suggesting "delegate some tasks," it identifies which tasks can be delegated and to whom. This specificity makes recommendations actionable rather than aspirational.
 
-### 3.2.3 Burnout Analysis Service
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-3.1 | System shall calculate burnout score from quantitative metrics | High |
-| FR-3.2 | System shall analyze sentiment from qualitative data | High |
-| FR-3.3 | System shall combine scores into final burnout assessment (60% workload, 40% sentiment) | High |
-| FR-3.4 | System shall classify burnout level as GREEN, YELLOW, or RED | High |
-| FR-3.5 | System shall identify primary burnout factors and stress indicators | High |
-| FR-3.6 | System shall track burnout score trends over time | Medium |
-| FR-3.7 | System shall detect deviation from user's personal baseline | Medium |
-| FR-3.8 | System shall generate alerts when burnout reaches critical levels | High |
-| FR-3.9 | System shall store burnout analysis history for each user | Medium |
-
-### 3.2.4 Recommendation Generation Service
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-4.1 | System shall retrieve relevant strategies from vector database using RAG | High |
-| FR-4.2 | System shall generate personalized recommendations based on burnout analysis | High |
-| FR-4.3 | System shall reference specific calendar events in recommendations | High |
-| FR-4.4 | System shall reference specific tasks in recommendations | High |
-| FR-4.5 | System shall respect user preferences (accepted/avoided recommendation types) | Medium |
-| FR-4.6 | System shall respect user constraints (deadlines, PTO blocks) | Medium |
-| FR-4.7 | System shall provide action steps for each recommendation | High |
-| FR-4.8 | System shall prioritize recommendations by urgency | Medium |
-| FR-4.9 | System shall track recommendation application status | Medium |
-
-### 3.2.5 AI Companion Service
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-5.1 | System shall accept text messages from users | High |
-| FR-5.2 | System shall classify user intent (emotional support, task query, burnout query, task creation, general chat) | High |
-| FR-5.3 | System shall provide empathetic responses to emotional content | High |
-| FR-5.4 | System shall save emotional entries to qualitative data table | High |
-| FR-5.5 | System shall perform sentiment analysis on user messages | Medium |
-| FR-5.6 | System shall respond to queries about task statistics | High |
-| FR-5.7 | System shall respond to queries about burnout status | High |
-| FR-5.8 | System shall create tasks from natural language descriptions | Medium |
-| FR-5.9 | System shall maintain conversation context within a session | Medium |
-| FR-5.10 | System shall accept audio input and transcribe to text | Medium |
-
-### 3.2.6 Multi-Modal Task Extraction Service
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-6.1 | System shall extract tasks from audio recordings (MP3, WAV, M4A) | High |
-| FR-6.2 | System shall extract tasks from documents (PDF, DOCX) | High |
-| FR-6.3 | System shall extract tasks from images (PNG, JPG) | High |
-| FR-6.4 | System shall extract tasks from handwritten notes using OCR | Medium |
-| FR-6.5 | System shall extract tasks from plain text files | High |
-| FR-6.6 | System shall automatically detect input type and select appropriate processor | High |
-| FR-6.7 | System shall validate extracted tasks using defined schema | High |
-| FR-6.8 | System shall save extracted tasks to database | High |
-| FR-6.9 | System shall support batch processing of multiple files | Medium |
-| FR-6.10 | System shall translate non-English content to English | Medium |
-
-### 3.2.7 Notebook Library Service
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-7.1 | System shall allow users to create notebooks | Medium |
-| FR-7.2 | System shall allow users to upload documents to notebooks | Medium |
-| FR-7.3 | System shall process and embed uploaded documents | Medium |
-| FR-7.4 | System shall support chat with notebook content using RAG | Medium |
-| FR-7.5 | System shall generate quizzes from notebook content | Low |
-| FR-7.6 | System shall list user's notebooks | Medium |
-| FR-7.7 | System shall delete documents from notebooks | Medium |
-
-### 3.2.8 User Profile and Preferences
-
-| ID | Requirement | Priority |
-|----|-------------|----------|
-| FR-8.1 | System shall store user profile (name, role, team size) | Medium |
-| FR-8.2 | System shall store user preferences (communication style, accepted/avoided recommendations) | Medium |
-| FR-8.3 | System shall store user constraints (deadlines, PTO blocks) | Medium |
-| FR-8.4 | System shall learn behavioral patterns from historical data | Medium |
-| FR-8.5 | System shall calculate user's baseline burnout score after sufficient data | Medium |
-| FR-8.6 | System shall identify user-specific stress triggers | Medium |
+**Conversational Support** through the AI companion provides emotional support alongside practical recommendations. Users can share how they're feeling, ask questions about their workload, or create tasks through natural conversation. This human-like interaction makes the system more accessible and supportive.
 
 ---
 
-## 3.3 Non-Functional Requirements
+## 3.3 Feasibility Study
 
-### 3.3.1 Performance Requirements
+### Technical Feasibility
 
-| ID | Requirement | Target |
-|----|-------------|--------|
-| NFR-1.1 | API response time for simple queries | < 500ms |
-| NFR-1.2 | Burnout analysis processing time | < 3 seconds |
-| NFR-1.3 | Recommendation generation time | < 5 seconds |
-| NFR-1.4 | AI companion response time | < 5 seconds |
-| NFR-1.5 | Task extraction from text | < 3 seconds |
-| NFR-1.6 | Task extraction from audio (5 min) | < 30 seconds |
-| NFR-1.7 | Task extraction from document (10 pages) | < 60 seconds |
-| NFR-1.8 | Concurrent user support | 100+ simultaneous users |
+The system leverages mature, well-documented technologies. Large Language Models are accessed through the Groq API, providing fast inference for text processing and recommendation generation. Vector similarity search uses PostgreSQL with the PGVector extension, a production-ready solution for semantic retrieval. Audio transcription relies on AssemblyAI, a commercial service with high accuracy. Document processing uses Unstructured.io, an open-source library for parsing various document formats. The FastAPI framework provides high-performance REST endpoints with automatic documentation.
 
-### 3.3.2 Security Requirements
+All required technologies are either open-source or available through affordable API services with comprehensive documentation and active community support.
 
-| ID | Requirement | Description |
-|----|-------------|-------------|
-| NFR-2.1 | Authentication | JWT-based token authentication for all protected endpoints |
-| NFR-2.2 | Authorization | Role-based access control; users access only their own data |
-| NFR-2.3 | Data Encryption | HTTPS for all API communications |
-| NFR-2.4 | Password Security | Passwords hashed using bcrypt with appropriate salt rounds |
-| NFR-2.5 | Input Validation | All inputs validated and sanitized to prevent injection attacks |
-| NFR-2.6 | Token Expiration | JWT tokens expire after configurable duration (default: 24 hours) |
-| NFR-2.7 | Sensitive Data | Mental health data encrypted at rest and in transit |
+### Operational Feasibility
 
-### 3.3.3 Scalability Requirements
+Users interact with the system through familiar interfaces—chat conversations, file uploads, and dashboard views. The system integrates with existing workflows rather than replacing them, allowing gradual adoption. Users can start with one feature (such as the AI companion) and expand usage over time. Minimal training is required since the interface follows established UX patterns.
 
-| ID | Requirement | Description |
-|----|-------------|-------------|
-| NFR-3.1 | Horizontal Scaling | System architecture supports horizontal scaling of API servers |
-| NFR-3.2 | Database Scaling | PostgreSQL supports read replicas for increased query capacity |
-| NFR-3.3 | Stateless Design | API services are stateless to enable load balancing |
-| NFR-3.4 | Async Processing | Long-running tasks processed asynchronously |
+### Economic Feasibility
 
-### 3.3.4 Availability Requirements
-
-| ID | Requirement | Target |
-|----|-------------|--------|
-| NFR-4.1 | System Uptime | 99% availability |
-| NFR-4.2 | Planned Maintenance | Maximum 4 hours/month during off-peak hours |
-| NFR-4.3 | Error Recovery | Graceful degradation when external services unavailable |
-| NFR-4.4 | Data Backup | Daily database backups with 30-day retention |
-
-### 3.3.5 Usability Requirements
-
-| ID | Requirement | Description |
-|----|-------------|-------------|
-| NFR-5.1 | Intuitive Interface | Users can complete primary tasks without documentation |
-| NFR-5.2 | Response Clarity | AI responses are clear, actionable, and free of jargon |
-| NFR-5.3 | Error Messages | User-friendly error messages with guidance for resolution |
-| NFR-5.4 | Accessibility | UI complies with WCAG 2.1 AA guidelines |
-| NFR-5.5 | Mobile Responsiveness | UI functions correctly on mobile devices |
-
-### 3.3.6 Maintainability Requirements
-
-| ID | Requirement | Description |
-|----|-------------|-------------|
-| NFR-6.1 | Modular Architecture | Services are loosely coupled and independently deployable |
-| NFR-6.2 | Code Documentation | All public APIs documented with descriptions and examples |
-| NFR-6.3 | Logging | Comprehensive logging for debugging and monitoring |
-| NFR-6.4 | Configuration | Environment-based configuration (no hardcoded values) |
-
-### 3.3.7 Reliability Requirements
-
-| ID | Requirement | Description |
-|----|-------------|-------------|
-| NFR-7.1 | Data Integrity | Database transactions ensure data consistency |
-| NFR-7.2 | Fault Tolerance | System handles individual component failures gracefully |
-| NFR-7.3 | Validation | All extracted tasks validated before database insertion |
-| NFR-7.4 | Idempotency | API operations are idempotent where appropriate |
+Cloud deployment enables pay-per-use pricing, making the system cost-effective for organizations of any size. Open-source components minimize licensing costs. API costs for LLM inference and audio transcription scale with usage, avoiding large upfront investments. The potential return on investment through reduced burnout-related productivity loss and turnover justifies the operational costs.
 
 ---
 
-## 3.4 Use Case Diagrams
+## 3.4 Functional Requirements
 
-### 3.4.1 Main System Use Case Diagram
+This section describes what the system does, organized by major functional areas.
 
-> **Figure 3.1:** Main System Use Case Diagram
+### User Authentication and Management
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              SENTRY AI SYSTEM                                │
-│                                                                             │
-│  ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐      │
-│  │   Register &    │     │  Manage Tasks   │     │ Analyze Burnout │      │
-│  │     Login       │     │  & Meetings     │     │                 │      │
-│  └────────┬────────┘     └────────┬────────┘     └────────┬────────┘      │
-│           │                       │                       │               │
-│           │    ┌─────────────────┐│                       │               │
-│           │    │  View Burnout   ││                       │               │
-│  ┌────┐   │    │    Dashboard    │├───────────────────────┘               │
-│  │    │   │    └────────┬────────┘│                                       │
-│  │ U  │───┼─────────────┼─────────┼───────────────────────┐               │
-│  │ S  │   │             │         │                       │               │
-│  │ E  │   │    ┌────────┴────────┐│     ┌─────────────────┴─────┐        │
-│  │ R  │   │    │      Get        ││     │   Chat with AI        │        │
-│  │    │───┼────┤ Recommendations ├┼─────┤     Companion         │        │
-│  └────┘   │    └────────┬────────┘│     └─────────────────┬─────┘        │
-│           │             │         │                       │               │
-│           │    ┌────────┴────────┐│     ┌─────────────────┴─────┐        │
-│           │    │  Apply/Track    ││     │   Submit Diary        │        │
-│           └────┤ Recommendations ├┼─────┤     Entry             │        │
-│                └─────────────────┘│     └───────────────────────┘        │
-│                                   │                                       │
-│           ┌─────────────────┐     │     ┌─────────────────┐              │
-│           │  Extract Tasks  │     │     │ Manage Notebook │              │
-│           │   from Files    ├─────┘     │    Library      │              │
-│           └─────────────────┘           └─────────────────┘              │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+The system provides secure user registration and authentication. Users can create accounts using email and password, with support for OAuth providers (Google, Facebook, Apple) for convenient single sign-on. Authentication uses JWT tokens that securely identify users across all API requests. Password reset functionality allows account recovery via email. User sessions have configurable expiration periods to balance security with convenience.
 
-                              ┌──────────┐
-                              │ External │
-                              │ Systems  │
-                              └────┬─────┘
-                                   │
-                    ┌──────────────┼──────────────┐
-                    │              │              │
-              ┌─────┴─────┐ ┌─────┴─────┐ ┌─────┴─────┐
-              │  Groq AI  │ │ Voyage AI │ │AssemblyAI │
-              │    API    │ │Embeddings │ │  Audio    │
-              └───────────┘ └───────────┘ └───────────┘
-```
+### Task and Calendar Management
 
-### 3.4.2 AI Companion Use Case Diagram
+Users can create, view, update, and delete tasks with rich metadata including title, description, priority level, due date, and current status. The system distinguishes between regular tasks and calendar events (meetings), storing additional information for meetings such as start time, end time, attendees, and whether attendance is optional. Tasks can be marked as delegatable, enabling the recommendation engine to suggest delegation when appropriate. The system tracks task completion history and calculates statistics including total active tasks, overdue items, and tasks due within the current week.
 
-> **Figure 3.2:** AI Companion Use Case Diagram
+### Burnout Analysis Service
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    AI COMPANION SERVICE                      │
-│                                                             │
-│    ┌─────────────────┐                                      │
-│    │  Send Text      │                                      │
-│    │    Message      │──────────┐                           │
-│    └─────────────────┘          │                           │
-│                                 │                           │
-│    ┌─────────────────┐          │    ┌─────────────────┐   │
-│    │  Send Audio     │          ├───►│ Classify Intent │   │
-│    │    Message      │──────────┘    └────────┬────────┘   │
-│    └─────────────────┘                        │            │
-│                                               │            │
-│  ┌────┐                          ┌────────────┼────────────┤
-│  │    │                          │            │            │
-│  │ U  │    ┌─────────────────┐   │   ┌────────┴────────┐   │
-│  │ S  │───►│ Get Emotional   │◄──┤   │  Emotional      │   │
-│  │ E  │    │    Support      │   │   │   Support       │   │
-│  │ R  │    └─────────────────┘   │   └─────────────────┘   │
-│  │    │                          │                         │
-│  │    │    ┌─────────────────┐   │   ┌─────────────────┐   │
-│  │    │───►│ Query Task      │◄──┼───┤  Task Query     │   │
-│  │    │    │   Statistics    │   │   └─────────────────┘   │
-│  └────┘    └─────────────────┘   │                         │
-│                                  │   ┌─────────────────┐   │
-│            ┌─────────────────┐   ├───┤ Burnout Query   │   │
-│            │ Query Burnout   │◄──┤   └─────────────────┘   │
-│            │    Status       │   │                         │
-│            └─────────────────┘   │   ┌─────────────────┐   │
-│                                  ├───┤ Task Creation   │   │
-│            ┌─────────────────┐   │   └─────────────────┘   │
-│            │ Create Task via │◄──┤                         │
-│            │ Natural Language│   │   ┌─────────────────┐   │
-│            └─────────────────┘   └───┤ General Chat    │   │
-│                                      └─────────────────┘   │
-│            ┌─────────────────┐                             │
-│            │ Submit Diary    │                             │
-│            │    Entry        │                             │
-│            └─────────────────┘                             │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
+The burnout analysis engine processes both quantitative and qualitative data to assess burnout risk. Quantitative analysis examines workload metrics including task counts, meeting hours, deadline density, and back-to-back meeting patterns. Qualitative analysis processes emotional check-ins, diary entries, and conversation sentiment to detect emotional exhaustion and stress indicators.
 
-### 3.4.3 Task Extraction Use Case Diagram
+The system combines these analyses using a weighted formula (60% workload, 40% sentiment) to produce a final burnout score. This score is classified into three levels: GREEN indicates healthy status, YELLOW signals elevated risk requiring attention, and RED indicates critical burnout requiring immediate intervention. The system identifies primary contributing factors, tracks score trends over time, and generates alerts when burnout reaches dangerous levels.
 
-> **Figure 3.3:** Task Extraction Use Case Diagram
+### Recommendation Generation Service
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  TASK EXTRACTION SERVICE                     │
-│                                                             │
-│            ┌─────────────────┐                              │
-│            │  Upload Audio   │───┐                          │
-│            │     File        │   │     ┌───────────────┐    │
-│            └─────────────────┘   │     │   Transcribe  │    │
-│                                  ├────►│     Audio     │    │
-│            ┌─────────────────┐   │     └───────┬───────┘    │
-│            │ Upload Document │───┤             │            │
-│            │  (PDF, DOCX)    │   │             │            │
-│  ┌────┐    └─────────────────┘   │     ┌───────▼───────┐    │
-│  │    │                          │     │    Parse      │    │
-│  │ U  │    ┌─────────────────┐   ├────►│   Document    │    │
-│  │ S  │───►│  Upload Image   │───┤     └───────┬───────┘    │
-│  │ E  │    │                 │   │             │            │
-│  │ R  │    └─────────────────┘   │             │            │
-│  │    │                          │     ┌───────▼───────┐    │
-│  │    │    ┌─────────────────┐   │     │  OCR Process  │    │
-│  │    │───►│Upload Handwritten───┼────►│  (if needed)  │    │
-│  │    │    │     Notes       │   │     └───────┬───────┘    │
-│  └────┘    └─────────────────┘   │             │            │
-│                                  │             │            │
-│            ┌─────────────────┐   │     ┌───────▼───────┐    │
-│            │  Upload Text    │───┘     │ Extract Tasks │    │
-│            │     File        │────────►│   via LLM     │    │
-│            └─────────────────┘         └───────┬───────┘    │
-│                                                │            │
-│            ┌─────────────────┐         ┌───────▼───────┐    │
-│            │ View Extraction │◄────────│   Validate    │    │
-│            │    Results      │         │    Tasks      │    │
-│            └─────────────────┘         └───────┬───────┘    │
-│                                                │            │
-│            ┌─────────────────┐         ┌───────▼───────┐    │
-│            │  Batch Upload   │         │  Save to DB   │    │
-│            │   Multiple Files│────────►│               │    │
-│            └─────────────────┘         └───────────────┘    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+The recommendation engine uses Retrieval-Augmented Generation to produce personalized, evidence-based guidance. When generating recommendations, the system first queries the vector database to retrieve relevant strategies from the curated guidebook based on the user's burnout profile and identified stress factors.
 
-### 3.4.4 Context Diagram
+The retrieved strategies are combined with the user's context—their profile, preferences, constraints, current calendar events, and task list—to construct a prompt for the language model. The LLM then generates recommendations that reference specific events and tasks, transforming generic strategies into actionable guidance tailored to the user's situation.
 
-> **Figure 3.4:** System Context Diagram
+Recommendations respect user preferences (accepted and avoided recommendation types) and constraints (such as upcoming deadlines or blocked periods). Each recommendation includes clear action steps, priority level, and expected outcomes.
 
-```
-                           ┌─────────────────┐
-                           │    Groq AI      │
-                           │   (LLM API)     │
-                           └────────┬────────┘
-                                    │
-                                    ▼
-┌─────────────┐            ┌───────────────────┐            ┌─────────────┐
-│             │            │                   │            │             │
-│    User     │◄──────────►│    SENTRY AI      │◄──────────►│  Voyage AI  │
-│  (Mobile/   │            │     SYSTEM        │            │ (Embeddings)│
-│    Web)     │            │                   │            │             │
-│             │            │  ┌─────────────┐  │            └─────────────┘
-└─────────────┘            │  │   Backend   │  │
-                           │  │  Services   │  │            ┌─────────────┐
-                           │  └─────────────┘  │            │             │
-                           │                   │◄──────────►│ AssemblyAI  │
-                           │  ┌─────────────┐  │            │   (Audio)   │
-                           │  │     AI      │  │            │             │
-                           │  │  Services   │  │            └─────────────┘
-                           │  └─────────────┘  │
-                           │                   │            ┌─────────────┐
-                           │  ┌─────────────┐  │            │             │
-                           │  │ PostgreSQL  │  │◄──────────►│  PGVector   │
-                           │  │  Database   │  │            │(Vector Store│
-                           │  └─────────────┘  │            │             │
-                           │                   │            └─────────────┘
-                           └───────────────────┘
-```
+### AI Companion Service
+
+The AI companion provides a conversational interface for emotional support, information queries, and task management. When users send messages, the system classifies their intent into categories: emotional support, task queries, burnout queries, task creation, or general conversation.
+
+For emotional content, the companion responds empathetically while saving the entry to the qualitative data table for sentiment analysis. For task queries, it retrieves statistics and provides summaries of the user's workload. For burnout queries, it explains the user's current status and contributing factors. For task creation requests, it extracts task details from natural language and creates entries in the database.
+
+The companion also accepts audio messages, transcribing speech to text before processing. This multi-modal input support allows users to interact in whatever way is most convenient for their situation.
+
+### Multi-Modal Task Extraction Service
+
+The task extraction service processes diverse input formats to automatically populate the user's task database. Supported formats include audio recordings (meeting recordings, voice memos), documents (PDF reports, Word documents), images (screenshots, photos of whiteboards), handwritten notes (photographed notebooks, scanned pages), and plain text files.
+
+The system automatically detects the input type and selects the appropriate processing pipeline. Audio files are transcribed using AssemblyAI. Documents are parsed using Unstructured.io to extract text, tables, and embedded images. Images and handwritten notes are processed using OCR (Tesseract) and vision models. All extracted text is then analyzed by the LLM to identify and structure task information.
+
+Extracted tasks are validated against a defined schema ensuring required fields are present and values are within acceptable ranges. Valid tasks are saved to the database while validation failures are logged as warnings without stopping the overall process.
+
+### Notebook Library Service
+
+The notebook library allows users to create personal knowledge repositories. Users can create notebooks and upload documents which are processed, chunked, and embedded for semantic search. The chat feature enables users to ask questions about their uploaded content, with the system retrieving relevant passages to generate accurate, grounded responses. A quiz generation feature creates study materials from notebook content.
+
+### User Profile and Preferences
+
+The system maintains detailed user profiles to enable personalization. Basic profile information includes name, role, team size, and delegation capabilities. Preference settings allow users to specify their preferred communication style and indicate which recommendation types they accept or wish to avoid.
+
+Constraint management tracks time-bound restrictions such as upcoming deadlines, blocked periods, or delegation limitations. The behavioral learning module analyzes historical data to establish user-specific baselines, identifying their normal workload patterns and personal stress triggers. This learned information improves the accuracy of burnout detection and the relevance of recommendations over time.
 
 ---
 
-## 3.5 Use Case Descriptions
+## 3.5 Non-Functional Requirements
 
-### 3.5.1 UC-01: User Registration
+Beyond functional capabilities, the system must meet quality standards for performance, security, scalability, and usability.
 
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-01 |
-| **Use Case Name** | User Registration |
-| **Actor** | User |
-| **Description** | New user creates an account in the system |
-| **Preconditions** | User has valid email address |
-| **Main Flow** | 1. User navigates to registration page<br>2. User enters email, password, and profile information<br>3. System validates input data<br>4. System creates user account<br>5. System sends verification email<br>6. User verifies email address<br>7. System activates account |
-| **Alternative Flow** | 3a. If email already exists, display error message<br>3b. If password doesn't meet requirements, display requirements |
-| **Postconditions** | User account created and activated |
-| **Priority** | High |
+### Performance
 
-### 3.5.2 UC-02: User Login
+Response time is critical for user experience. Simple API queries should return within 500 milliseconds. Burnout analysis, which involves database queries and score calculation, should complete within 3 seconds. Recommendation generation, requiring RAG retrieval and LLM inference, should complete within 5 seconds. AI companion responses should arrive within 5 seconds to maintain conversational flow.
 
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-02 |
-| **Use Case Name** | User Login |
-| **Actor** | User |
-| **Description** | Registered user authenticates to access the system |
-| **Preconditions** | User has registered account |
-| **Main Flow** | 1. User enters email and password<br>2. System validates credentials<br>3. System generates JWT token<br>4. System returns token to client<br>5. User is redirected to dashboard |
-| **Alternative Flow** | 2a. If credentials invalid, display error message<br>2b. If account locked, display lockout message |
-| **Postconditions** | User authenticated with valid JWT token |
-| **Priority** | High |
+Task extraction times vary by input type: text files process within 3 seconds, audio recordings (5 minutes) within 30 seconds, and documents (10 pages) within 60 seconds. The system should support at least 100 concurrent users without performance degradation.
 
-### 3.5.3 UC-03: Create Task
+### Security
 
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-03 |
-| **Use Case Name** | Create Task |
-| **Actor** | User |
-| **Description** | User creates a new task in the system |
-| **Preconditions** | User is authenticated |
-| **Main Flow** | 1. User navigates to task creation form<br>2. User enters task details (title, description, priority, due date)<br>3. User optionally sets delegation status and estimated hours<br>4. User submits task<br>5. System validates task data<br>6. System saves task to database<br>7. System displays confirmation |
-| **Alternative Flow** | 5a. If validation fails, display specific error messages |
-| **Postconditions** | New task created and associated with user |
-| **Priority** | High |
+All API endpoints require JWT authentication, ensuring only authorized users access the system. Role-based access control restricts users to their own data—no user can view another user's tasks, burnout analysis, or conversations. All communications use HTTPS encryption. Passwords are hashed using bcrypt with appropriate salt rounds before storage.
 
-### 3.5.4 UC-04: Analyze Burnout
+Input validation prevents injection attacks by sanitizing all user-provided data. JWT tokens expire after a configurable duration (default 24 hours) to limit exposure from compromised tokens. Mental health data receives additional protection with encryption at rest.
 
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-04 |
-| **Use Case Name** | Analyze Burnout |
-| **Actor** | User |
-| **Description** | System analyzes user's current burnout level |
-| **Preconditions** | User is authenticated; User has tasks/meetings in system |
-| **Main Flow** | 1. User requests burnout analysis<br>2. System retrieves user's tasks and meetings<br>3. System retrieves user's qualitative data<br>4. System calculates workload metrics<br>5. System performs sentiment analysis<br>6. System combines scores (60% workload + 40% sentiment)<br>7. System classifies burnout level (GREEN/YELLOW/RED)<br>8. System identifies stress factors<br>9. System saves analysis to history<br>10. System displays results to user |
-| **Alternative Flow** | 2a. If no data available, display message requesting data input |
-| **Postconditions** | Burnout analysis completed and stored |
-| **Priority** | High |
+### Scalability
 
-### 3.5.5 UC-05: Get Recommendations
+The architecture supports horizontal scaling to handle growing user bases. API services are stateless, allowing load balancers to distribute requests across multiple server instances. PostgreSQL supports read replicas for increased query capacity. Long-running operations (such as document processing) execute asynchronously to prevent blocking.
 
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-05 |
-| **Use Case Name** | Get Recommendations |
-| **Actor** | User |
-| **Description** | System generates personalized burnout recovery recommendations |
-| **Preconditions** | User is authenticated; Burnout analysis completed |
-| **Main Flow** | 1. User requests recommendations<br>2. System retrieves latest burnout analysis<br>3. System retrieves user profile and preferences<br>4. System retrieves current calendar events<br>5. System retrieves current task list<br>6. System queries vector database for relevant strategies (RAG)<br>7. System constructs LLM prompt with context<br>8. System generates event-specific recommendations<br>9. System displays recommendations with action steps |
-| **Alternative Flow** | 6a. If no relevant strategies found, use general recommendations |
-| **Postconditions** | Personalized recommendations displayed to user |
-| **Priority** | High |
+### Availability
 
-### 3.5.6 UC-06: Chat with AI Companion
+The system targets 99% uptime availability. Planned maintenance windows are limited to 4 hours per month during off-peak hours. When external services (LLM API, transcription service) are temporarily unavailable, the system degrades gracefully rather than failing completely. Daily database backups with 30-day retention protect against data loss.
 
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-06 |
-| **Use Case Name** | Chat with AI Companion |
-| **Actor** | User |
-| **Description** | User interacts with AI companion for support and queries |
-| **Preconditions** | User is authenticated |
-| **Main Flow** | 1. User sends message to AI companion<br>2. System classifies message intent<br>3. Based on intent:<br>&nbsp;&nbsp;- Emotional: Save to qualitative data, respond empathetically<br>&nbsp;&nbsp;- Task query: Retrieve task statistics, respond with data<br>&nbsp;&nbsp;- Burnout query: Retrieve burnout status, respond with analysis<br>&nbsp;&nbsp;- Task creation: Extract task details, create task<br>&nbsp;&nbsp;- General: Generate helpful response<br>4. System performs sentiment analysis on message<br>5. System generates appropriate response<br>6. System displays response to user |
-| **Alternative Flow** | 1a. If audio message, transcribe first then process |
-| **Postconditions** | User receives appropriate response; emotional data saved if applicable |
-| **Priority** | High |
+### Usability
 
-### 3.5.7 UC-07: Extract Tasks from File
+The user interface follows established design patterns, enabling users to complete primary tasks without consulting documentation. AI-generated responses are clear, actionable, and free of technical jargon. Error messages explain what went wrong and suggest resolution steps. The interface is accessible according to WCAG 2.1 AA guidelines and functions correctly on mobile devices.
 
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-07 |
-| **Use Case Name** | Extract Tasks from File |
-| **Actor** | User |
-| **Description** | System extracts tasks from uploaded file |
-| **Preconditions** | User is authenticated |
-| **Main Flow** | 1. User uploads file (audio/document/image/text)<br>2. System detects file type<br>3. System selects appropriate processor:<br>&nbsp;&nbsp;- Audio: Transcribe with AssemblyAI<br>&nbsp;&nbsp;- Document: Parse with Unstructured<br>&nbsp;&nbsp;- Image: Process with vision model<br>&nbsp;&nbsp;- Handwritten: OCR with Tesseract<br>&nbsp;&nbsp;- Text: Direct processing<br>4. System extracts text content<br>5. System sends content to LLM for task extraction<br>6. System validates extracted tasks<br>7. System saves valid tasks to database<br>8. System displays extraction results |
-| **Alternative Flow** | 6a. If task validation fails, log warning and continue with valid tasks |
-| **Postconditions** | Tasks extracted and saved to user's task list |
-| **Priority** | High |
+### Maintainability
 
-### 3.5.8 UC-08: Submit Diary Entry
-
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-08 |
-| **Use Case Name** | Submit Diary Entry |
-| **Actor** | User |
-| **Description** | User submits emotional diary entry for analysis |
-| **Preconditions** | User is authenticated |
-| **Main Flow** | 1. User navigates to diary entry form<br>2. User writes diary entry content<br>3. User submits entry<br>4. System saves entry to qualitative_data table<br>5. System performs sentiment analysis<br>6. System extracts emotional themes<br>7. System generates supportive response<br>8. System displays response and analysis to user |
-| **Alternative Flow** | None |
-| **Postconditions** | Diary entry saved; sentiment analyzed; response provided |
-| **Priority** | Medium |
-
-### 3.5.9 UC-09: Apply Recommendation
-
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-09 |
-| **Use Case Name** | Apply Recommendation |
-| **Actor** | User |
-| **Description** | User marks a recommendation as applied |
-| **Preconditions** | User is authenticated; User has received recommendations |
-| **Main Flow** | 1. User views recommendation<br>2. User takes action based on recommendation<br>3. User marks recommendation as applied<br>4. System records application timestamp<br>5. System optionally asks for feedback<br>6. System updates recommendation status |
-| **Alternative Flow** | 3a. User can mark recommendation as skipped with reason |
-| **Postconditions** | Recommendation status updated for tracking |
-| **Priority** | Medium |
-
-### 3.5.10 UC-10: View Burnout Dashboard
-
-| Field | Description |
-|-------|-------------|
-| **Use Case ID** | UC-10 |
-| **Use Case Name** | View Burnout Dashboard |
-| **Actor** | User |
-| **Description** | User views comprehensive burnout status dashboard |
-| **Preconditions** | User is authenticated |
-| **Main Flow** | 1. User navigates to dashboard<br>2. System retrieves latest burnout analysis<br>3. System retrieves burnout history<br>4. System retrieves task statistics<br>5. System retrieves active recommendations<br>6. System displays:<br>&nbsp;&nbsp;- Current burnout score and level<br>&nbsp;&nbsp;- Score trend graph<br>&nbsp;&nbsp;- Key stress factors<br>&nbsp;&nbsp;- Task summary<br>&nbsp;&nbsp;- Active recommendations |
-| **Alternative Flow** | 2a. If no analysis exists, prompt user to run analysis |
-| **Postconditions** | Dashboard displayed with current status |
-| **Priority** | High |
+The modular architecture keeps services loosely coupled and independently deployable. All public APIs include documentation with descriptions and examples. Comprehensive logging supports debugging and monitoring. Configuration uses environment variables rather than hardcoded values, enabling deployment across different environments without code changes.
 
 ---
 
-## 3.6 User Stories
+## 3.6 Use Case Diagrams
 
-### 3.6.1 Authentication Stories
+The following diagrams illustrate the primary interactions between users and the system.
 
-| ID | User Story | Priority |
-|----|------------|----------|
-| US-01 | As a new user, I want to register with my email so that I can access the system | High |
-| US-02 | As a registered user, I want to log in securely so that I can access my data | High |
-| US-03 | As a user, I want to reset my password via email so that I can recover my account | High |
-| US-04 | As a user, I want to log in with Google/Facebook so that registration is faster | Medium |
+> **Figure 3.1: Main System Use Case Diagram**
+>
+> *This diagram should show the User actor connected to primary use cases: Register & Login, Manage Tasks, Analyze Burnout, View Dashboard, Get Recommendations, Chat with AI Companion, Extract Tasks from Files, and Submit Diary Entry. External system actors (Groq AI, Voyage AI, AssemblyAI) connect to relevant processing use cases.*
 
-### 3.6.2 Task Management Stories
+> **Figure 3.2: AI Companion Use Case Diagram**
+>
+> *This diagram should show the User actor connected to: Send Text Message, Send Audio Message, Get Emotional Support, Query Task Statistics, Query Burnout Status, Create Task via Natural Language, and Submit Diary Entry. Internal use cases include Classify Intent, Perform Sentiment Analysis, and Generate Response.*
 
-| ID | User Story | Priority |
-|----|------------|----------|
-| US-05 | As a user, I want to create tasks so that I can track my work | High |
-| US-06 | As a user, I want to set task priorities so that I can focus on important work | High |
-| US-07 | As a user, I want to set due dates so that I don't miss deadlines | High |
-| US-08 | As a user, I want to mark tasks as delegatable so that recommendations consider this | Medium |
-| US-09 | As a user, I want to see overdue tasks so that I can address urgent items | High |
+> **Figure 3.3: Task Extraction Use Case Diagram**
+>
+> *This diagram should show the User actor connected to upload use cases for different file types (Audio, Document, Image, Handwritten Notes, Text). Processing use cases include Transcribe Audio, Parse Document, OCR Processing, Extract Tasks via LLM, Validate Tasks, and Save to Database.*
 
-### 3.6.3 Burnout Analysis Stories
-
-| ID | User Story | Priority |
-|----|------------|----------|
-| US-10 | As a user, I want to see my burnout score so that I understand my current state | High |
-| US-11 | As a user, I want to see burnout trends so that I can track my progress | Medium |
-| US-12 | As a user, I want to know my stress factors so that I can address root causes | High |
-| US-13 | As a user, I want alerts when burnout is critical so that I can take immediate action | High |
-
-### 3.6.4 Recommendation Stories
-
-| ID | User Story | Priority |
-|----|------------|----------|
-| US-14 | As a user, I want personalized recommendations so that advice is relevant to me | High |
-| US-15 | As a user, I want recommendations to reference my actual meetings so that I can act immediately | High |
-| US-16 | As a user, I want to see action steps so that I know exactly what to do | High |
-| US-17 | As a user, I want to set preferences so that I only receive acceptable recommendations | Medium |
-| US-18 | As a user, I want to track applied recommendations so that I can see what works | Medium |
-
-### 3.6.5 AI Companion Stories
-
-| ID | User Story | Priority |
-|----|------------|----------|
-| US-19 | As a user, I want to chat with AI so that I can get support anytime | High |
-| US-20 | As a user, I want to share my feelings so that I can receive emotional support | High |
-| US-21 | As a user, I want to ask about my tasks so that I get quick summaries | High |
-| US-22 | As a user, I want to create tasks by speaking so that entry is faster | Medium |
-| US-23 | As a user, I want to send voice messages so that I can communicate hands-free | Medium |
-
-### 3.6.6 Task Extraction Stories
-
-| ID | User Story | Priority |
-|----|------------|----------|
-| US-24 | As a user, I want to extract tasks from meeting recordings so that I don't forget action items | High |
-| US-25 | As a user, I want to extract tasks from documents so that I can capture written tasks | High |
-| US-26 | As a user, I want to extract tasks from photos so that I can digitize handwritten notes | Medium |
-| US-27 | As a user, I want batch upload so that I can process multiple files at once | Medium |
+> **Figure 3.4: System Context Diagram**
+>
+> *This diagram should show Sentry AI as the central system, with the User on one side and external services (Groq AI, Voyage AI, AssemblyAI, PostgreSQL/PGVector) on the other side, illustrating the system boundaries and external dependencies.*
 
 ---
 
-## 3.7 Summary
+## 3.7 Use Case Descriptions
 
-This chapter has presented a comprehensive analysis of the Sentry AI system requirements:
+### UC-01: User Registration and Login
 
-**System Analysis:**
-- Identified limitations of current burnout management approaches
-- Proposed an integrated AI-powered solution
-- Confirmed technical, operational, and economic feasibility
+A new user begins by creating an account with their email address and password. The system validates the input, creates the account, and sends a verification email. Once verified, the user can log in by providing credentials. The system validates these credentials and issues a JWT token that authenticates subsequent requests. Users can also authenticate through OAuth providers for faster access.
 
-**Functional Requirements:**
-- 50+ detailed requirements across 8 service areas
-- Prioritized by importance (High/Medium/Low)
-- Traceable to specific system components
+**Actors:** User
+**Preconditions:** Valid email address for registration; existing account for login
+**Postconditions:** User account created and verified; valid JWT token issued
 
-**Non-Functional Requirements:**
-- Performance targets (response times, concurrency)
-- Security requirements (authentication, encryption)
-- Scalability, availability, usability, and maintainability specifications
+### UC-02: Analyze Burnout
 
-**Use Cases:**
-- 10 detailed use case descriptions
-- 4 use case diagrams (Main System, AI Companion, Task Extraction, Context)
-- 27 user stories organized by feature area
+When a user requests burnout analysis, the system retrieves their tasks, meetings, and qualitative data from the database. The workload analyzer calculates metrics including task counts, meeting hours, deadline pressure, and back-to-back meeting patterns. The sentiment analyzer processes recent emotional check-ins and diary entries to assess emotional state.
 
-These requirements provide a clear specification for the system design and implementation phases that follow.
+The system combines these scores (60% workload, 40% sentiment) to produce a final burnout score, classifies it into GREEN/YELLOW/RED levels, and identifies the primary contributing factors. The analysis is saved to history for trend tracking, and results are displayed to the user.
+
+**Actors:** User
+**Preconditions:** User authenticated; tasks/meetings exist in system
+**Postconditions:** Burnout analysis completed and stored; results displayed
+
+### UC-03: Get Recommendations
+
+Following burnout analysis, users can request personalized recommendations. The system retrieves the latest analysis along with the user's profile, preferences, and constraints. It queries the vector database using RAG to find relevant strategies from the curated guidebook based on identified stress factors.
+
+The system constructs a prompt including the user's context, current calendar events, and task list. The LLM generates recommendations that reference specific events (e.g., "Cancel your 3:30 PM Team Sync") and tasks (e.g., "Delegate the Database Migration to Alex"). Each recommendation includes priority level and actionable steps.
+
+**Actors:** User
+**Preconditions:** User authenticated; burnout analysis completed
+**Postconditions:** Personalized, event-specific recommendations displayed
+
+### UC-04: Chat with AI Companion
+
+Users send messages to the AI companion through text or audio input. For audio, the system first transcribes the speech to text. The companion classifies the message intent to determine the appropriate response type.
+
+For emotional content, the companion saves the entry to qualitative data, performs sentiment analysis, and responds empathetically. For task queries, it retrieves statistics and summarizes the user's workload. For burnout queries, it explains current status and contributing factors. For task creation, it extracts details and creates the task. For general conversation, it provides helpful responses.
+
+**Actors:** User
+**Preconditions:** User authenticated
+**Postconditions:** Appropriate response generated; emotional data saved if applicable
+
+### UC-05: Extract Tasks from Files
+
+Users upload files containing task information—meeting recordings, project documents, photos of whiteboards, or handwritten notes. The system detects the file type and routes it to the appropriate processor.
+
+Audio files are transcribed using AssemblyAI. Documents are parsed using Unstructured.io to extract text and tables. Images are processed using vision models. Handwritten notes undergo OCR with Tesseract. The extracted text is sent to the LLM with instructions to identify and structure task information.
+
+Extracted tasks are validated against the schema. Valid tasks are saved to the user's task database with appropriate metadata. The system displays results showing how many tasks were extracted and saved.
+
+**Actors:** User
+**Preconditions:** User authenticated; valid file uploaded
+**Postconditions:** Tasks extracted, validated, and saved to database
+
+### UC-06: Submit Diary Entry
+
+Users write diary entries describing their emotional state, work experiences, or personal reflections. Upon submission, the system saves the entry to the qualitative_data table with appropriate metadata. Sentiment analysis processes the content to extract emotional indicators and themes.
+
+The AI companion generates a supportive response acknowledging the user's feelings and offering appropriate guidance. The entry contributes to future burnout analyses through the qualitative scoring component.
+
+**Actors:** User
+**Preconditions:** User authenticated
+**Postconditions:** Entry saved; sentiment analyzed; supportive response provided
+
+### UC-07: View Burnout Dashboard
+
+Users access the dashboard to see their comprehensive burnout status. The system retrieves the latest burnout analysis, historical scores for trend visualization, current task statistics, and active recommendations.
+
+The dashboard displays the current burnout score with level indicator (GREEN/YELLOW/RED), a trend graph showing score changes over time, key stress factors contributing to the current score, a summary of tasks (total, overdue, due this week), and prioritized recommendations awaiting action.
+
+**Actors:** User
+**Preconditions:** User authenticated
+**Postconditions:** Dashboard displayed with current status and trends
 
 ---
 
-## Suggested Figures Summary
+## 3.8 User Stories
 
-| Figure | Description | Type |
-|--------|-------------|------|
-| 3.1 | Main System Use Case Diagram | UML Use Case |
-| 3.2 | AI Companion Use Case Diagram | UML Use Case |
-| 3.3 | Task Extraction Use Case Diagram | UML Use Case |
-| 3.4 | System Context Diagram | Context Diagram |
-| 3.5 | Current vs Proposed System Comparison | Comparison Table |
+The following user stories capture requirements from the user's perspective.
+
+### Authentication
+- As a new user, I want to register with my email so that I can access the system and track my burnout.
+- As a returning user, I want to log in quickly so that I can check my status without friction.
+- As a busy professional, I want to use Google sign-in so that I don't need to remember another password.
+
+### Task Management
+- As a user, I want to create tasks with priorities and deadlines so that the system understands my workload.
+- As a team lead, I want to mark tasks as delegatable so that recommendations can suggest delegation.
+- As someone with a busy schedule, I want to see which tasks are overdue so that I can prioritize urgent items.
+
+### Burnout Analysis
+- As a user concerned about my well-being, I want to see my burnout score so that I understand my current state.
+- As someone trying to improve, I want to see my burnout trends so that I know if I'm getting better or worse.
+- As a proactive person, I want alerts when my burnout reaches critical levels so that I can take immediate action.
+
+### Recommendations
+- As a user, I want recommendations tailored to my situation so that advice is actually relevant to me.
+- As someone with a packed calendar, I want recommendations that reference specific meetings so that I know exactly what to cancel or shorten.
+- As a person with constraints, I want the system to respect my deadlines so that it doesn't suggest impossible actions.
+
+### AI Companion
+- As someone feeling overwhelmed, I want to share my feelings with the AI so that I feel heard and supported.
+- As a busy person, I want to ask "how many tasks do I have" and get an instant answer.
+- As someone in a meeting, I want to create tasks by voice so that I can capture action items hands-free.
+
+### Task Extraction
+- As someone who attends many meetings, I want to upload recordings and have tasks extracted automatically.
+- As a student, I want to photograph my handwritten notes and have tasks digitized.
+- As a professional, I want to process multiple files at once so that I can batch my task entry.
+
+---
+
+## 3.9 Summary
+
+This chapter has analyzed the limitations of current burnout management approaches and defined comprehensive requirements for Sentry AI.
+
+Current systems fail due to fragmentation—wellness apps don't see workloads, productivity tools ignore health, and organizational programs react too late. Sentry AI addresses these gaps through integrated, automated, personalized, and evidence-based intervention.
+
+The feasibility study confirms that required technologies are mature and available, the system integrates with existing workflows, and costs scale reasonably with usage.
+
+Functional requirements span seven service areas: authentication, task management, burnout analysis, recommendations, AI companion, task extraction, and user profiles. Non-functional requirements define quality standards for performance, security, scalability, availability, usability, and maintainability.
+
+Use case diagrams and descriptions model the primary system interactions, while user stories capture requirements from the end-user perspective.
+
+These requirements provide the foundation for system design in the following chapter.
