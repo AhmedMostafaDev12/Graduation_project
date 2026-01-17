@@ -220,13 +220,13 @@ Actions appear where users need them. The "Add a source" button appears directly
 
 ## 5.5 Screen Designs by Service
 
-The following sections describe each screen in detail, organized by functional area.
+This section presents each screen's role within the user journey, explaining why each design decision supports the application's goals of reducing burnout and encouraging sustainable well-being.
 
 ---
 
-### 5.5.1 Onboarding Screens
+### 5.5.1 Onboarding Flow
 
-The onboarding flow introduces users to Sentry AI's value proposition through three illustrated screens that can be swiped or skipped.
+The onboarding experience serves a critical psychological function: it must validate the user's struggles while building confidence that the app can help. Users downloading a burnout app are often already stressed—the onboarding must not add to that burden.
 
 ---
 
@@ -234,17 +234,17 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Onboarding - Take it easy](../images/login_signup_onboarding/01_onboarding_take_it_easy.png)
 
-**Purpose:** Validate the user's experience with burnout and introduce the app's promise.
+**Purpose:**
+
+The first screen sets the emotional tone for the entire relationship with the app. Rather than immediately showcasing features, this screen prioritizes empathy and validation of the user's struggles.
 
 **Visual Elements:**
-- Large, bold headline "Take it easy" in dark blue
-- Subheadline "no more confusion, destruction or burnout" in gray
-- Central illustration showing a person overwhelmed with papers, laptop, calendar, and documents flying around them
-- The character appears stressed but not defeated, suggesting the situation is manageable
-- Pagination dots (4 total) indicating position in the onboarding flow
-- "skip" button allowing users to bypass onboarding
 
-**Design Rationale:** The illustration validates what users are feeling—acknowledging the chaos of modern work life. The reassuring headline immediately positions the app as a solution rather than another obligation.
+The screen features a large headline and subheadline explaining the app's promise, accompanied by an illustration showing a stressed person surrounded by overwhelming work artifacts. Navigation elements include pagination dots indicating the onboarding sequence length and a skip button for users who want to proceed directly to the app.
+
+**Design Rationale:**
+
+By visually depicting the chaos that burnout sufferers know intimately, the app communicates "we understand what you're going through" before asking anything of the user. The reassuring headline creates immediate relief, while the skip button respects users' time and autonomy—critical for people who already feel overwhelmed.
 
 ---
 
@@ -252,16 +252,17 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Onboarding - Auto scheduling](../images/login_signup_onboarding/02_onboarding_auto_scheduling.png)
 
-**Purpose:** Introduce the AI-powered task management capability.
+**Purpose:**
+
+Having acknowledged the problem, this screen presents the first pillar of the solution: intelligent task management powered by AI.
 
 **Visual Elements:**
-- Headline "Auto scheduling with AI" highlighting the intelligent automation
-- Subheadline "no conflicts, overload or missing deadlines"
-- Illustration showing a relaxed person sitting with a laptop, accompanied by a "MY GOALS" checklist with items being checked off
-- Calm home environment with plants, suggesting work-life balance
-- Same pagination and skip button pattern
 
-**Design Rationale:** This screen shifts from problem (overwhelm) to solution (AI assistance). The relaxed posture and checked items suggest the outcome users can expect.
+The headline introduces the AI scheduling capability, with a subheadline addressing specific pain points. The illustration shows a relaxed person in a calm home environment with visual indicators of completed tasks. The same navigation pattern continues from the previous screen.
+
+**Design Rationale:**
+
+The visual narrative shifts dramatically from chaos to calm, showing users the outcome they can expect. The promise of eliminating "conflicts, overload or missing deadlines" directly addresses common contributors to burnout. The home environment with plants subtly suggests that this solution enables work-life balance, not just more efficient work.
 
 ---
 
@@ -269,20 +270,23 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Onboarding - Speak with assistant](../images/login_signup_onboarding/03_onboarding_speak_assistant.png)
 
-**Purpose:** Introduce the AI companion feature for emotional support and task management.
+**Purpose:**
+
+The final onboarding screen introduces what differentiates Sentry AI from typical productivity apps: the AI companion for emotional support.
 
 **Visual Elements:**
-- Headline "Speak with your assistant"
-- Subheadline "assign tasks, life coaching and mood tracking"
-- Illustration showing the friendly robot character with a speech bubble saying "Hi! How can I help you?"
-- User figure sitting comfortably in a chair, appearing relaxed
-- Chat bubble icons suggesting conversation
 
-**Design Rationale:** This screen introduces the AI companion character that users will interact with throughout the app. The speech bubble and conversational posture emphasize that this is a dialogue, not a one-way tool.
+The screen presents a headline and feature description, accompanied by an illustration of the AI robot character initiating conversation with the user. The robot design is friendly and approachable, wearing headphones to symbolize listening.
+
+**Design Rationale:**
+
+This screen establishes that the app cares about how users feel, not just what they accomplish. The friendly robot character becomes a familiar presence throughout the app, signaling that this is a safe space for emotional expression. The conversational framing emphasizes dialogue rather than data entry.
 
 ---
 
-### 5.5.2 Authentication Screens
+### 5.5.2 Authentication Flow
+
+Authentication screens handle sensitive personal data—burnout status, emotional states, work struggles. The design must build trust while minimizing friction. Every additional step risks losing users who are already low on energy and patience.
 
 ---
 
@@ -290,19 +294,17 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Sign Up](../images/login_signup_onboarding/04_signup.png)
 
-**Purpose:** Allow new users to create an account.
+**Purpose:**
+
+New user registration is a critical conversion point where the app must minimize barriers while collecting necessary information for personalization.
 
 **Visual Elements:**
-- Clean, minimal form design on light gradient background
-- "Create An Account" header
-- Input fields for: Name, Email, Phone Number (with +20 country code), Password, Confirm Password
-- Prominent "Sign up" button in teal/cyan
-- "Already have an account? Log in" link
-- Divider with "OR" and "Login with" label
-- Social authentication buttons: Apple, Google, GitHub
-- Each social button clearly labeled with provider name
 
-**Design Rationale:** The form is intentionally simple with generous spacing. Social login options reduce friction for users who prefer not to create new credentials. The light background maintains the calming aesthetic.
+The screen presents a clean registration form with input fields for essential user information, a primary signup button, and alternative authentication options through social login providers. Visual dividers separate the traditional registration path from social authentication.
+
+**Design Rationale:**
+
+The design provides multiple registration pathways to accommodate different user preferences. Social authentication buttons are prominently displayed because they significantly reduce abandonment rates by eliminating the need to create and remember another password. The form requests only essential information upfront, keeping it compact rather than overwhelming users who are already stressed.
 
 ---
 
@@ -310,19 +312,17 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Login](../images/login_signup_onboarding/05_login.png)
 
-**Purpose:** Authenticate returning users.
+**Purpose:**
+
+The login screen welcomes returning users back to the app while ensuring secure authentication.
 
 **Visual Elements:**
-- Welcoming illustration showing a person at a desk with security-related icons (lock, shield, password field)
-- "Welcome Back!" headline creating a friendly, personal greeting
-- "Login to your Account" subheadline
-- Email and Password input fields with subtle borders
-- Password field includes visibility toggle (eye icon)
-- "Forgot Password?" link positioned near password field
-- "Log in" button in teal/cyan
-- "Don't have an account? Sign up" link
 
-**Design Rationale:** The security-themed illustration reassures users that their sensitive mental health data is protected. The welcoming language makes returning feel like coming back to a supportive space.
+The screen features a welcoming header with personalized greeting, credential input fields with a password visibility toggle, a forgot password recovery link, and a primary login button. An illustration reinforces security and trust.
+
+**Design Rationale:**
+
+The greeting personalizes what could be a purely transactional interaction, reinforcing the user's decision to return. Security iconography in the illustration reassures users about data protection without requiring conscious thought about security. The password visibility toggle prevents frustration from failed login attempts by allowing users to verify their input.
 
 ---
 
@@ -330,17 +330,17 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Forgot Password](../images/login_signup_onboarding/06_forgot_password.png)
 
-**Purpose:** Initiate password recovery.
+**Purpose:**
+
+Initiate the password recovery process in a way that reduces user frustration and anxiety.
 
 **Visual Elements:**
-- "Forgot password" header with back arrow
-- Illustration showing a person with a mobile device displaying a user profile
-- Instructional text: "Please Enter Your Email Address To Receive a Verification Code"
-- Email address input field
-- "Try another way" link offering alternative recovery
-- "send" button
 
-**Design Rationale:** The illustration shows the verification process visually, reducing anxiety about the recovery flow. Clear instructions set expectations.
+The screen includes clear instructional text, an email input field, alternative recovery options, and a submit button. An illustration visualizes the verification process that will follow.
+
+**Design Rationale:**
+
+Password recovery is inherently frustrating. The design acknowledges this by providing clear guidance and alternative pathways. The illustration reduces anxiety by showing users what to expect next in the process.
 
 ---
 
@@ -348,16 +348,17 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Create New Password](../images/login_signup_onboarding/07_create_new_password.png)
 
-**Purpose:** Allow users to set a new password after verification.
+**Purpose:**
+
+Allow users to set a new secure password after verification.
 
 **Visual Elements:**
-- "Create New Password" header
-- Illustration showing a person with a large smartphone displaying a profile, suggesting account security
-- Helpful text: "Your New password must differ from the old one"
-- Password and Confirm Password input fields
-- "Save" button
 
-**Design Rationale:** Clear guidance prevents users from reusing compromised passwords. The illustration maintains visual continuity with the forgot password screen.
+The screen contains password input fields with confirmation, helpful security guidance text, and a save button.  The illustration maintains visual continuity with the previous recovery screen.
+
+**Design Rationale:**
+
+Clear guidance prevents users from reusing compromised passwords, improving security without adding friction. Visual continuity reassures users they're still in the recovery flow.
 
 ---
 
@@ -365,17 +366,17 @@ The onboarding flow introduces users to Sentry AI's value proposition through th
 
 ![Email Verification](../images/login_signup_onboarding/08_email_verification.png)
 
-**Purpose:** Verify user's email address during registration.
+**Purpose:**
+
+Verify email ownership through a secure code sent to the user's inbox.
 
 **Visual Elements:**
-- "Verify Your Email" header with back arrow
-- Illustration showing a person with a megaphone emerging from a device, representing notification/communication
-- Instructional text: "Please Enter The 4 Digit Code Sent To Your Email"
-- Four separate input boxes for the verification code (improving usability over a single text field)
-- "Resend code" link for users who didn't receive the email
-- "Verify" button
 
-**Design Rationale:** Separate digit boxes make code entry easier and reduce errors. The resend option addresses common email delivery issues.
+The screen presents instructional text, separate input boxes for each verification code digit, a resend option, and a verify button. An illustration communicates the notification concept.
+
+**Design Rationale:**
+
+Separate digit boxes significantly improve input accuracy compared to a single text field while providing clear visual feedback about code length. The resend option addresses the common user anxiety about email delivery without requiring backward navigation.
 
 ---
 
