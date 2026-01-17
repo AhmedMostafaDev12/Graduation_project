@@ -1,6 +1,6 @@
 # 5. UI/UX DESIGN
 
-This chapter presents the user interface and user experience design of Sentry AI. A mental health and productivity application demands careful attention to visual design, as the interface itself can either contribute to user stress or promote calm and focus. The design decisions documented here reflect research in color psychology, accessibility, and human-computer interaction principles specific to wellness applications.
+This chapter presents the user interface and user experience design of Sentry AI. The design reflects careful consideration of color psychology, visual hierarchy, and user-centered principles specifically tailored for a mental health and productivity application. A total of 30 screens were designed across seven functional areas, creating a cohesive and calming experience that supports users in managing their well-being.
 
 ---
 
@@ -10,24 +10,22 @@ This chapter presents the user interface and user experience design of Sentry AI
 
 User interface design in mental health applications carries responsibilities beyond typical software. Users interacting with Sentry AI may already be experiencing stress, exhaustion, or emotional overwhelm. A poorly designed interface—cluttered layouts, harsh colors, confusing navigation—can amplify these negative states and discourage continued use.
 
-Conversely, thoughtful design can actively support the application's goals. A calming color palette can reduce anxiety. Clear visual hierarchy can minimize cognitive load. Intuitive navigation can prevent frustration. Encouraging micro-interactions can motivate positive behavior change.
+Conversely, thoughtful design actively supports the application's therapeutic goals. A calming color palette reduces anxiety. Clear visual hierarchy minimizes cognitive load. Intuitive navigation prevents frustration. Encouraging illustrations and friendly language motivate positive behavior change without creating pressure.
 
 Research in digital therapeutics demonstrates that user engagement with mental health applications drops significantly when the interface feels clinical, complicated, or visually unappealing. Users must feel that the application is a supportive companion, not another source of stress competing for their attention.
 
-For Sentry AI specifically, the interface must communicate several qualities:
+For Sentry AI specifically, the interface communicates:
 - **Trust** — Users share sensitive information about their workload and emotional state
-- **Calm** — The visual experience should feel peaceful, not overwhelming
-- **Clarity** — Information should be immediately understandable
-- **Motivation** — Design should encourage positive action without pressure
-- **Professionalism** — The application serves working professionals and students
+- **Calm** — The visual experience feels peaceful, not overwhelming
+- **Clarity** — Information is immediately understandable at a glance
+- **Motivation** — Design encourages positive action without pressure
+- **Warmth** — Friendly illustrations create an approachable, human feel
 
 ### 5.1.2 Design Principles
 
-The following principles guided all design decisions:
-
 **Simplicity Over Complexity**
 
-Every screen focuses on a single primary action. Secondary features remain accessible but visually subordinate. Users should never feel overwhelmed by options or information density. White space is used generously to let content breathe.
+Every screen focuses on a single primary purpose. The home dashboard shows the day's plan at a glance. The burnout screen focuses on the score and its components. Secondary features remain accessible but visually subordinate. White space and soft backgrounds let content breathe.
 
 **Progressive Disclosure**
 
@@ -35,15 +33,11 @@ Information is revealed gradually as users need it. The dashboard shows summary 
 
 **Encouraging Without Pressuring**
 
-The application encourages healthy behaviors through positive framing rather than guilt or fear. Instead of "You're working too much!" the interface communicates "Here's an opportunity to improve your well-being." Success is celebrated; setbacks are addressed with support rather than criticism.
+The application uses friendly language and supportive illustrations. Instead of alarming warnings, the interface uses gentle color transitions (green to yellow to red) to indicate status. Success is celebrated; challenges are addressed with support rather than criticism. The AI companion asks "wanna say something?" rather than demanding input.
 
-**Consistency Across Platforms**
+**Consistency Across Flows**
 
-The design system ensures visual and interaction consistency between web and mobile platforms. Users moving between devices experience a familiar interface. Components, colors, typography, and spacing remain uniform throughout the application.
-
-**Accessibility First**
-
-All design decisions consider users with visual impairments, color blindness, or motor difficulties. Contrast ratios meet WCAG 2.1 AA standards. Touch targets are appropriately sized. Text remains readable without zooming. Color is never the only indicator of meaning.
+The design system ensures visual consistency throughout the application. Cards use the same rounded corners and gradient styles. Typography follows a clear hierarchy. The bottom navigation provides constant orientation. Users always know where they are and how to navigate.
 
 ---
 
@@ -51,388 +45,1055 @@ All design decisions consider users with visual impairments, color blindness, or
 
 ### 5.2.1 The Psychology of Color in Wellness Applications
 
-Color profoundly influences emotional state and behavior. In wellness applications, color choices directly impact whether users feel calm or anxious, motivated or discouraged, trusting or suspicious. The Sentry AI color palette was selected based on established research in color psychology.
+Color profoundly influences emotional state and behavior. The Sentry AI color palette was carefully selected based on established research in color psychology, prioritizing calming tones that reduce anxiety while maintaining visual interest and clarity.
 
-**Blue — Trust and Calm**
+**Light Blue — Calm and Serenity**
 
-Blue is universally associated with trust, stability, and calm. It lowers heart rate and reduces anxiety. Medical and wellness applications frequently use blue for these reasons. In Sentry AI, blue serves as the primary brand color, appearing in the logo, primary buttons, and key interactive elements. It communicates reliability and creates a sense of safety for users sharing sensitive information.
+Light blue serves as the dominant background color throughout the application. Blue is universally associated with calm, trust, and stability. It lowers heart rate and reduces anxiety. The soft, light blue (#E8F4FC) creates a serene atmosphere that feels like a clear sky—open, peaceful, and refreshing. This choice directly supports users who may be experiencing stress.
 
-**Green — Health and Growth**
+**Teal/Cyan Gradients — Energy and Freshness**
 
-Green represents health, balance, and positive progress. It evokes nature and renewal. In Sentry AI, green indicates healthy burnout status (GREEN level) and successful actions. Green checkmarks confirm completed tasks. Green progress indicators celebrate improvement. The association with growth motivates users toward positive change.
+Cards and interactive elements use teal-to-cyan gradients (#4ECDC4 to #44A8B3). These colors combine the calming properties of blue with the vitality of green, creating a sense of balanced energy. The gradients add visual depth and modern appeal while maintaining the overall calming aesthetic.
 
-**Yellow/Amber — Attention and Caution**
+**White and Light Tones — Clarity and Space**
 
-Yellow and amber attract attention without the alarm of red. These colors indicate moderate risk or items requiring awareness. In Sentry AI, amber represents the YELLOW burnout level—elevated risk that deserves attention but isn't critical. This color choice prompts action without inducing panic.
+White cards and light backgrounds create visual breathing room. In a mental health application, avoiding visual clutter is essential. The generous use of light tones ensures content stands out clearly without overwhelming the user.
 
-**Red — Urgency and Critical States**
+**Status Colors — Intuitive Communication**
 
-Red signals urgency and critical situations requiring immediate attention. Its use is intentionally limited to avoid alarm fatigue. In Sentry AI, red appears only for RED burnout level (critical) and overdue tasks. Sparing use ensures red maintains its impact when it does appear.
+The burnout gauge uses an intuitive traffic-light metaphor:
+- **Green** — Healthy, low burnout risk
+- **Yellow** — Moderate, attention needed
+- **Red** — Critical, immediate action required
 
-**Purple — Wisdom and Creativity**
+This familiar color coding communicates status instantly without requiring users to read numbers or labels.
 
-Purple is associated with wisdom, creativity, and premium quality. It provides visual interest without the intensity of warmer colors. In Sentry AI, purple accents appear in the AI companion interface, subtly suggesting intelligence and thoughtfulness.
+**Accent Colors — Visual Interest**
 
-**Neutral Tones — Foundation and Readability**
-
-Dark grays and soft whites create the foundation for content. Dark backgrounds reduce eye strain during extended use, particularly important for users already experiencing fatigue. Light text on dark backgrounds is easier to read in low-light conditions common during evening work hours.
+Purple and pink gradients appear in recommendation cards, adding warmth and visual variety. These colors are associated with creativity and care, appropriate for sections offering personalized guidance.
 
 ### 5.2.2 The Sentry AI Color Palette
 
 **Primary Colors**
 
-| Color | Hex Code | Usage |
-|-------|----------|-------|
-| Primary Blue | #4A90D9 | Brand color, primary buttons, links |
-| Deep Navy | #1A1A2E | Background, cards |
-| Dark Surface | #16213E | Secondary backgrounds |
+| Color | Usage |
+|-------|-------|
+| Light Blue (#E8F4FC) | Primary background throughout the app |
+| Teal (#4ECDC4) | Card backgrounds, interactive elements |
+| Cyan (#44A8B3) | Gradient endpoints, accents |
+| Deep Blue (#1E88E5) | Primary buttons, links |
 
 **Status Colors**
 
-| Color | Hex Code | Usage |
-|-------|----------|-------|
-| Healthy Green | #4CAF50 | GREEN status, success, completion |
-| Warning Amber | #FFC107 | YELLOW status, attention needed |
-| Critical Red | #F44336 | RED status, overdue, urgent |
+| Color | Usage |
+|-------|-------|
+| Green (#4CAF50) | Healthy status, success, completion |
+| Yellow/Amber (#FFC107) | Moderate status, attention needed |
+| Red (#F44336) | Critical status, urgent items |
 
 **Accent Colors**
 
-| Color | Hex Code | Usage |
-|-------|----------|-------|
-| Purple Accent | #9C27B0 | AI companion, special features |
-| Teal Accent | #00BCD4 | Secondary actions, highlights |
+| Color | Usage |
+|-------|-------|
+| Purple gradient | Recommendation cards |
+| Pink/Coral | Secondary highlights |
+| White (#FFFFFF) | Cards, input fields |
 
-**Neutral Colors**
+### 5.2.3 Light Theme Rationale
 
-| Color | Hex Code | Usage |
-|-------|----------|-------|
-| White | #FFFFFF | Primary text on dark backgrounds |
-| Light Gray | #B0B0B0 | Secondary text, placeholders |
-| Border Gray | #333333 | Dividers, borders |
+Unlike many productivity apps that use dark themes, Sentry AI uses a light, airy color scheme for important psychological reasons:
 
-### 5.2.3 Dark Theme Rationale
+**Openness and Hope**
 
-Sentry AI uses a dark theme as the default for several reasons:
+Light colors create a sense of openness and possibility. For users experiencing burnout—which often involves feelings of being trapped or overwhelmed—a bright, open interface subconsciously communicates that relief is possible.
 
-**Reduced Eye Strain**
+**Daytime Optimization**
 
-Users experiencing burnout often work long hours, including evenings. Dark interfaces emit less light, reducing eye strain and fatigue during extended sessions.
+Users primarily interact with the app during work hours when light themes are more comfortable and match ambient lighting conditions.
 
-**Focus Enhancement**
+**Approachability**
 
-Dark backgrounds allow content to stand out more prominently. Cards and interactive elements "pop" against the dark surface, directing attention where needed.
+Light interfaces feel friendlier and less technical. The soft blue background resembles a calm sky, creating an inviting atmosphere rather than a clinical tool.
 
-**Modern Aesthetic**
+**Illustration Integration**
 
-Dark themes communicate sophistication and modernity. They align with contemporary application design trends, making the application feel current and professionally designed.
-
-**Energy Efficiency**
-
-On OLED mobile screens, dark pixels consume less power. This practical benefit extends battery life for mobile users.
+The friendly character illustrations integrate seamlessly with the light background, creating a cohesive, storybook-like quality that makes the app feel personal and supportive.
 
 ---
 
-## 5.3 Typography
+## 5.3 Visual Elements and Illustrations
 
-### 5.3.1 Font Selection
+### 5.3.1 Character Illustrations
 
-Sentry AI uses a clean, modern sans-serif typeface optimized for screen readability. The selected font family provides:
+A distinctive feature of Sentry AI's design is the consistent use of friendly character illustrations throughout the application. These illustrations serve multiple purposes:
 
-- **High legibility** at various sizes
-- **Clear distinction** between characters (avoiding confusion between similar letters)
-- **Professional appearance** appropriate for workplace contexts
-- **Multiple weights** for establishing visual hierarchy
-- **Excellent rendering** on both iOS and Android devices
+**Humanizing the Experience**
 
-### 5.3.2 Type Scale and Hierarchy
+The illustrated characters—depicting people working, thinking, and interacting with technology—make the app feel personal rather than clinical. Users see relatable representations of themselves.
 
-A consistent type scale creates clear visual hierarchy:
+**Emotional Communication**
 
-**Headings** use heavier weights and larger sizes to establish section importance. Screen titles are immediately recognizable. Section headers organize content into digestible groups.
+Illustrations communicate emotional states that support the app's messaging. The onboarding illustration shows a person overwhelmed with papers and devices, validating the user's feelings. Later illustrations show calm, organized scenarios, suggesting the positive outcomes the app enables.
 
-**Body Text** uses regular weight at comfortable reading sizes. Line height is generous (1.5x) to improve readability. Paragraph width is constrained to prevent eye fatigue from long line lengths.
+**Visual Storytelling**
 
-**Labels and Captions** use smaller sizes and lighter weights for secondary information. They remain readable but visually subordinate to primary content.
+Each major section uses illustrations that tell a story:
+- Onboarding: Overwhelmed person → AI assistant helping → Organized, peaceful work
+- Login: Person at desk with security elements, suggesting safe, protected access
+- AI Companion: Friendly robot offering to help
 
-**Numbers and Metrics** use tabular figures ensuring digits align properly in columns and statistics. This is particularly important for burnout scores and task counts.
+**Consistent Style**
 
----
+All illustrations share a consistent style:
+- Flat design with subtle gradients
+- Blue-dominant color scheme matching the app palette
+- Friendly, rounded character designs
+- Modern, professional aesthetic
 
-## 5.4 Iconography and Visual Elements
+### 5.3.2 The AI Companion Character
 
-### 5.4.1 Icon Style
+The AI companion is represented by a distinctive robot character with:
+- Rounded, friendly form (not angular or threatening)
+- Teal/cyan coloring matching the app palette
+- Headphones suggesting it's ready to listen
+- Expressive posture (waving, gesturing helpfully)
 
-Icons throughout Sentry AI follow a consistent style:
+This character appears on the home screen with the prompt "wanna say something?" creating an inviting entry point for emotional support. The friendly design encourages users to share their feelings without judgment.
 
-- **Outline style** for navigation and secondary actions
-- **Filled style** for active states and primary actions
-- **Rounded corners** matching the overall soft, approachable aesthetic
-- **Consistent stroke width** for visual harmony
-- **Clear metaphors** ensuring icons are universally understood
+### 5.3.3 Iconography
 
-### 5.4.2 Illustrations and Graphics
+Icons throughout the app follow a consistent style:
+- Rounded, soft appearance
+- Consistent stroke weight
+- Clear metaphors (calendar for schedule, chart for analytics)
+- Matching the overall friendly aesthetic
 
-The burnout score visualization uses a gauge or circular progress indicator that immediately communicates status. The color fills from green through yellow to red, providing instant recognition of burnout level without reading numbers.
-
-Charts and graphs use smooth curves and gradients rather than harsh lines. This softer approach maintains the calming aesthetic while communicating data effectively.
-
-Empty states include friendly illustrations that encourage action without blame. A screen with no tasks shows an encouraging image rather than a stark "No data" message.
-
-### 5.4.3 Cards and Containers
-
-Content is organized into cards—elevated surfaces that group related information. Cards have:
-
-- **Rounded corners** (soft, approachable feel)
-- **Subtle shadows** or borders (visual separation without harshness)
-- **Consistent padding** (breathing room for content)
-- **Clear hierarchy** (title, content, actions)
+The bottom navigation uses filled icons for the active state and outlined icons for inactive states, providing clear visual feedback.
 
 ---
 
-## 5.5 Navigation and Information Architecture
+## 5.4 Navigation and Information Architecture
 
-### 5.5.1 Navigation Structure
+### 5.4.1 App Flow Structure
 
-The application uses bottom navigation for primary sections, a pattern familiar to mobile users and accessible with one-handed use. Primary sections include:
+The application follows a hub-and-spoke model with the Home screen as the central navigation point. The wireframe diagrams reveal the complete flow architecture:
 
-1. **Home/Dashboard** — Overview of burnout status and key metrics
-2. **Tasks** — Task management and calendar
-3. **AI Companion** — Chat interface for support and queries
-4. **Recommendations** — Personalized action suggestions
-5. **Profile** — Settings and user preferences
+**Flow 1: Onboarding + Login**
+Onboarding screens → Email Verification → Login/Signup → Profile Setup Questions → Home
 
-This structure ensures all major features are accessible within one tap from any screen.
+**Flow 2: Main Application**
+Home connects to all major sections:
+- Tasks (My Tasks → Upload Tasks)
+- Profile (Settings → Personal Data → Contact Info)
+- Burnout (Score → Details → Recommendations)
+- AI Companion (Chat interface)
+- Notebook Library (Create → Chat → AI Studio)
+- Integrations (Connected services)
 
-### 5.5.2 Screen Flow
+### 5.4.2 Bottom Navigation
 
-Users typically follow these primary flows:
+The primary navigation uses a bottom tab bar with five sections:
 
-**Check Status Flow:** Open app → View dashboard → See burnout score → Review contributing factors
+1. **Integrations** (link icon) — Third-party service connections
+2. **Analytics** (chart icon) — Burnout analysis and trends
+3. **Home** (house icon) — Central dashboard
+4. **Calendar** (calendar icon) — Task and schedule view
+5. **Notebook** (book icon) — Notebook library
 
-**Get Help Flow:** Open app → Navigate to AI companion → Chat about feelings or questions → Receive support
+The home icon is centrally positioned and slightly elevated, emphasizing its role as the primary hub. This pattern is familiar to mobile users and enables one-handed navigation.
 
-**Take Action Flow:** View recommendations → Read details → Apply recommendation → Mark as complete
+### 5.4.3 Screen Flow Principles
 
-**Manage Work Flow:** Navigate to tasks → View task list → Add/edit tasks → Check completion
+**Minimal Depth**
 
-Each flow is designed to require minimal taps while providing clear feedback at each step.
+Most features are accessible within 2-3 taps from the home screen. Users can check their burnout score, view recommendations, or chat with the AI companion without navigating through complex hierarchies.
 
----
+**Clear Back Navigation**
 
-## 5.6 Screen Designs by Service
+All secondary screens include a back arrow in the top-left corner, following platform conventions. Users always have a clear escape route.
 
-The following sections describe each screen in the Sentry AI application, organized by functional area. Each screen description covers its purpose, key elements, user interactions, and design rationale.
+**Contextual Actions**
 
----
-
-### 5.6.1 Authentication Screens
-
-*(Screens to be described after PDF upload)*
-
-**Login Screen**
-
-[Description pending - will detail the login interface including email/password fields, social login options, forgot password link, and visual design]
-
-**Registration Screen**
-
-[Description pending - will detail the registration flow including form fields, validation feedback, and onboarding elements]
-
-**Forgot Password Screen**
-
-[Description pending - will detail the password recovery flow]
+Actions appear where users need them. The "Add a source" button appears directly in the notebook library. The "Apply All" button appears at the top of recommendations. Users don't need to hunt for functionality.
 
 ---
 
-### 5.6.2 Dashboard Screens
+## 5.5 Screen Designs by Service
 
-*(Screens to be described after PDF upload)*
-
-**Home Dashboard**
-
-[Description pending - will detail the main dashboard showing burnout score, key metrics, quick actions, and navigation]
-
-**Burnout Score Detail**
-
-[Description pending - will detail the expanded view of burnout analysis with component breakdown]
+The following sections describe each screen in detail, organized by functional area.
 
 ---
 
-### 5.6.3 Task Management Screens
+### 5.5.1 Onboarding Screens
 
-*(Screens to be described after PDF upload)*
-
-**Task List**
-
-[Description pending - will detail the task listing interface with filters, sorting, and status indicators]
-
-**Task Detail/Edit**
-
-[Description pending - will detail the task viewing and editing interface]
-
-**Add Task**
-
-[Description pending - will detail the task creation flow]
-
-**Calendar View**
-
-[Description pending - will detail the calendar visualization of tasks and meetings]
+The onboarding flow introduces users to Sentry AI's value proposition through three illustrated screens that can be swiped or skipped.
 
 ---
 
-### 5.6.4 AI Companion Screens
+#### Figure 5.1: Onboarding Screen 1 — "Take it easy"
 
-*(Screens to be described after PDF upload)*
+![Onboarding - Take it easy](../images/login_signup_onboarding/01_onboarding_take_it_easy.png)
 
-**Chat Interface**
+**Purpose:** Validate the user's experience with burnout and introduce the app's promise.
 
-[Description pending - will detail the conversational interface including message bubbles, input area, and quick actions]
+**Visual Elements:**
+- Large, bold headline "Take it easy" in dark blue
+- Subheadline "no more confusion, destruction or burnout" in gray
+- Central illustration showing a person overwhelmed with papers, laptop, calendar, and documents flying around them
+- The character appears stressed but not defeated, suggesting the situation is manageable
+- Pagination dots (4 total) indicating position in the onboarding flow
+- "skip" button allowing users to bypass onboarding
 
-**Voice Input**
-
-[Description pending - will detail the audio recording interface]
-
-**Diary Entry**
-
-[Description pending - will detail the diary/journal entry interface]
-
----
-
-### 5.6.5 Recommendation Screens
-
-*(Screens to be described after PDF upload)*
-
-**Recommendations List**
-
-[Description pending - will detail the listing of personalized recommendations]
-
-**Recommendation Detail**
-
-[Description pending - will detail the expanded recommendation view with action steps]
+**Design Rationale:** The illustration validates what users are feeling—acknowledging the chaos of modern work life. The reassuring headline immediately positions the app as a solution rather than another obligation.
 
 ---
 
-### 5.6.6 Burnout Analysis Screens
+#### Figure 5.2: Onboarding Screen 2 — "Auto scheduling with AI"
 
-*(Screens to be described after PDF upload)*
+![Onboarding - Auto scheduling](../images/login_signup_onboarding/02_onboarding_auto_scheduling.png)
 
-**Analysis Results**
+**Purpose:** Introduce the AI-powered task management capability.
 
-[Description pending - will detail the burnout analysis results display]
+**Visual Elements:**
+- Headline "Auto scheduling with AI" highlighting the intelligent automation
+- Subheadline "no conflicts, overload or missing deadlines"
+- Illustration showing a relaxed person sitting with a laptop, accompanied by a "MY GOALS" checklist with items being checked off
+- Calm home environment with plants, suggesting work-life balance
+- Same pagination and skip button pattern
 
-**History/Trends**
-
-[Description pending - will detail the historical trend visualization]
-
----
-
-### 5.6.7 Task Extraction Screens
-
-*(Screens to be described after PDF upload)*
-
-**File Upload**
-
-[Description pending - will detail the file upload interface for task extraction]
-
-**Extraction Results**
-
-[Description pending - will detail the display of extracted tasks for review]
+**Design Rationale:** This screen shifts from problem (overwhelm) to solution (AI assistance). The relaxed posture and checked items suggest the outcome users can expect.
 
 ---
 
-### 5.6.8 Profile & Settings Screens
+#### Figure 5.3: Onboarding Screen 3 — "Speak with your assistant"
 
-*(Screens to be described after PDF upload)*
+![Onboarding - Speak with assistant](../images/login_signup_onboarding/03_onboarding_speak_assistant.png)
 
-**User Profile**
+**Purpose:** Introduce the AI companion feature for emotional support and task management.
 
-[Description pending - will detail the profile viewing and editing interface]
+**Visual Elements:**
+- Headline "Speak with your assistant"
+- Subheadline "assign tasks, life coaching and mood tracking"
+- Illustration showing the friendly robot character with a speech bubble saying "Hi! How can I help you?"
+- User figure sitting comfortably in a chair, appearing relaxed
+- Chat bubble icons suggesting conversation
 
-**Preferences**
-
-[Description pending - will detail the preferences and settings interface]
-
-**Constraints Management**
-
-[Description pending - will detail the interface for managing user constraints]
-
----
-
-### 5.6.9 Notebook Library Screens
-
-*(Screens to be described after PDF upload)*
-
-**Notebook List**
-
-[Description pending - will detail the notebook listing interface]
-
-**Notebook Chat**
-
-[Description pending - will detail the chat interface for querying notebook content]
+**Design Rationale:** This screen introduces the AI companion character that users will interact with throughout the app. The speech bubble and conversational posture emphasize that this is a dialogue, not a one-way tool.
 
 ---
 
-## 5.7 Responsive Design and Platform Considerations
+### 5.5.2 Authentication Screens
 
-### 5.7.1 Mobile-First Approach
+---
 
-Sentry AI was designed mobile-first, recognizing that users often check their burnout status and interact with the AI companion throughout the day from their phones. The mobile interface prioritizes:
+#### Figure 5.4: Sign Up Screen
 
-- **Thumb-friendly navigation** with bottom navigation bar
+![Sign Up](../images/login_signup_onboarding/04_signup.png)
+
+**Purpose:** Allow new users to create an account.
+
+**Visual Elements:**
+- Clean, minimal form design on light gradient background
+- "Create An Account" header
+- Input fields for: Name, Email, Phone Number (with +20 country code), Password, Confirm Password
+- Prominent "Sign up" button in teal/cyan
+- "Already have an account? Log in" link
+- Divider with "OR" and "Login with" label
+- Social authentication buttons: Apple, Google, GitHub
+- Each social button clearly labeled with provider name
+
+**Design Rationale:** The form is intentionally simple with generous spacing. Social login options reduce friction for users who prefer not to create new credentials. The light background maintains the calming aesthetic.
+
+---
+
+#### Figure 5.5: Login Screen
+
+![Login](../images/login_signup_onboarding/05_login.png)
+
+**Purpose:** Authenticate returning users.
+
+**Visual Elements:**
+- Welcoming illustration showing a person at a desk with security-related icons (lock, shield, password field)
+- "Welcome Back!" headline creating a friendly, personal greeting
+- "Login to your Account" subheadline
+- Email and Password input fields with subtle borders
+- Password field includes visibility toggle (eye icon)
+- "Forgot Password?" link positioned near password field
+- "Log in" button in teal/cyan
+- "Don't have an account? Sign up" link
+
+**Design Rationale:** The security-themed illustration reassures users that their sensitive mental health data is protected. The welcoming language makes returning feel like coming back to a supportive space.
+
+---
+
+#### Figure 5.6: Forgot Password Screen
+
+![Forgot Password](../images/login_signup_onboarding/06_forgot_password.png)
+
+**Purpose:** Initiate password recovery.
+
+**Visual Elements:**
+- "Forgot password" header with back arrow
+- Illustration showing a person with a mobile device displaying a user profile
+- Instructional text: "Please Enter Your Email Address To Receive a Verification Code"
+- Email address input field
+- "Try another way" link offering alternative recovery
+- "send" button
+
+**Design Rationale:** The illustration shows the verification process visually, reducing anxiety about the recovery flow. Clear instructions set expectations.
+
+---
+
+#### Figure 5.7: Create New Password Screen
+
+![Create New Password](../images/login_signup_onboarding/07_create_new_password.png)
+
+**Purpose:** Allow users to set a new password after verification.
+
+**Visual Elements:**
+- "Create New Password" header
+- Illustration showing a person with a large smartphone displaying a profile, suggesting account security
+- Helpful text: "Your New password must differ from the old one"
+- Password and Confirm Password input fields
+- "Save" button
+
+**Design Rationale:** Clear guidance prevents users from reusing compromised passwords. The illustration maintains visual continuity with the forgot password screen.
+
+---
+
+#### Figure 5.8: Email Verification Screen
+
+![Email Verification](../images/login_signup_onboarding/08_email_verification.png)
+
+**Purpose:** Verify user's email address during registration.
+
+**Visual Elements:**
+- "Verify Your Email" header with back arrow
+- Illustration showing a person with a megaphone emerging from a device, representing notification/communication
+- Instructional text: "Please Enter The 4 Digit Code Sent To Your Email"
+- Four separate input boxes for the verification code (improving usability over a single text field)
+- "Resend code" link for users who didn't receive the email
+- "Verify" button
+
+**Design Rationale:** Separate digit boxes make code entry easier and reduce errors. The resend option addresses common email delivery issues.
+
+---
+
+### 5.5.3 Profile Setup Screen
+
+---
+
+#### Figure 5.9: Profile Questions Screen
+
+![Profile Questions](../images/login_signup_onboarding/09_profile_questions.png)
+
+**Purpose:** Gather information to personalize the user experience and enable accurate burnout analysis.
+
+**Visual Elements:**
+- Tab navigation: "Personal data", "Contact info", "Questions" (Questions tab active)
+- Sentry AI logo and tagline: "Help us tailor your experience by telling us a bit about yourself"
+- Form fields with dropdown selections:
+  - Job role: "Select your role"
+  - Seniority level: "Select your level"
+  - Can you delegate tasks to others?: Toggle (No/Yes)
+  - Do you manage a team?: Toggle (No/Yes)
+  - What is your biggest work challenge?: "select challenge"
+- "Edit" button in top right for later modifications
+
+**Design Rationale:** These questions directly feed into the burnout analysis engine. Knowing if a user can delegate tasks or manages a team affects which recommendations are appropriate. The toggle switches make binary choices quick and easy.
+
+---
+
+### 5.5.4 Home Dashboard
+
+---
+
+#### Figure 5.10: Home Screen
+
+![Home Dashboard](../images/10_home_dashboard.png)
+
+**Purpose:** Provide an at-a-glance overview of the user's day and quick access to all features.
+
+**Visual Elements:**
+
+*Header Section:*
+- Personalized greeting: "Hello Ahmed" with user avatar
+- Friendly illustration of person working at desk with laptop
+
+*Calendar Strip:*
+- Horizontal date selector showing week view (Sat 1 - Thu 6)
+- Current date (Tue 4) highlighted with filled circle
+- Month indicator (October)
+
+*Today's Plan Section:*
+- Three task cards with gradient backgrounds:
+  - "Lecture 9:00 AM" marked as "urgent" (coral/orange gradient)
+  - "Meeting 11:00 AM" (teal gradient)
+  - "ML Task 1:00 PM" (teal gradient)
+
+*Status Cards:*
+- "Burnout Score" card showing status as "Exhausted" with a progress bar indicator (red level)
+- "wanna say something?" card with AI companion robot, inviting conversation
+
+*Bottom Navigation:*
+- Five icons: Integrations, Analytics, Home (active), Calendar, Notebook
+
+**Design Rationale:** The dashboard follows a "glanceable" design philosophy. Users can immediately see: who they are (greeting), what day it is (calendar), what they need to do (tasks), how they're feeling (burnout score), and how to get help (AI companion). The burnout score card creates urgency without panic through its color and friendly language.
+
+---
+
+### 5.5.5 Burnout Analysis Screens
+
+---
+
+#### Figure 5.11: Burnout Score Screen
+
+![Burnout Score](../images/burnout_recommendations/11_burnout_score.png)
+
+**Purpose:** Display comprehensive burnout analysis with trends and contributing factors.
+
+**Visual Elements:**
+
+*Score Header:*
+- Large "60" burnout score with upward trend arrow
+- "increasing" label and "moderate" status badge
+- Visual gauge showing score position
+- "15% up" indicator with colorful gauge graphic
+- "check details" link for more information
+
+*Trend Chart:*
+- Line graph showing burnout score over time
+- Time period toggles: Week, Month, Year
+- Date indicator: "24 October 2025"
+- Y-axis scale from 0-80
+- Notable spike visible around day 15
+
+*Factor Cards:*
+- "Workload" card showing "80% impact" with small gauge
+- "sentiment" card showing "30% positivity" with gauge
+
+*Primary Issues Section:*
+- List of identified issues:
+  - "Over Tasks" (with icon)
+  - "lack of team collaboration" (with icon)
+
+**Design Rationale:** The score is prominently displayed as the key metric. The trend chart helps users understand patterns over time. Factor breakdown shows what's contributing to burnout, while primary issues provide actionable insights.
+
+---
+
+#### Figure 5.12: Burnout Details Screen (Scrolled)
+
+![Burnout Details](../images/burnout_recommendations/12_burnout_details.png)
+
+**Purpose:** Show complete burnout analysis with recommendations preview.
+
+**Visual Elements:**
+
+*Primary Issues (continued):*
+- "Over Tasks"
+- "lack of team collaboration"
+- "successive no break holidays"
+
+*AI Recommendations Preview:*
+- Two recommendation cards:
+  - "Cancel Meeting" — brief description about reducing burnout
+  - "Cancel M..." (truncated, showing more available)
+
+*Burnout Signals Section:*
+- Visual indicators for detected signals:
+  - "Over Tasks" (red indicator)
+  - "lack of team collaboration" (yellow)
+  - "successive no break holidays" (yellow)
+
+*Recovery Plan Section:*
+- Progress indicator: "Target: reduce burnout by 10%"
+- Progress bar showing "progress: 50%, completed 5/10 steps"
+- "View plan details" link
+
+**Design Rationale:** This screen provides depth for users who want to understand their situation fully. The recovery plan progress creates motivation by showing incremental achievement.
+
+---
+
+#### Figure 5.13: Workload Breakdown Screen
+
+![Workload Breakdown](../images/burnout_recommendations/13_workload_breakdown.png)
+
+**Purpose:** Detailed analysis of workload components and their impact on burnout.
+
+**Visual Elements:**
+
+*Workload Breakdown Section:*
+- Horizontal bar chart comparing metrics to baseline:
+  - Tasks: 80% (significantly over baseline ~30%)
+  - Time spent: 70%
+  - Meetings: 50%
+  - Baseline deviations: 30%
+
+*Burnout Factors Donut Chart:*
+- Circular chart showing factor distribution
+- Color-coded segments for different factors
+- Legend identifying each factor
+
+*High Impact Metrics Section:*
+- Ranked list with change indicators:
+  - "Meeting overload" (+30% in red, indicating significant increase)
+  - "lack of team collaboration" (+18%)
+  - "successive no break holidays"
+
+**Design Rationale:** This analytical screen is for users who want data-driven insights. The comparison to baseline helps users understand what "too much" means for them personally. High impact metrics prioritize what to address first.
+
+---
+
+#### Figure 5.14: AI Recommendations Screen
+
+![AI Recommendations](../images/burnout_recommendations/14_ai_recommendations.png)
+
+**Purpose:** Display personalized, actionable recommendations generated by the AI.
+
+**Visual Elements:**
+
+*Header:*
+- "AI Recommendations" title with back arrow
+- Bulk action buttons: "Apply All" and "Discard All"
+
+*Recommendation Cards:*
+Each card features:
+- Gradient background (purple/pink/teal variations)
+- Title (e.g., "Cancel Meeting")
+- Star rating (relevance/impact indicator)
+- "highly recommended" badge
+- Brief description of the recommendation and expected benefit
+- Two action buttons: "Try Out" and "cancel"
+
+*Visible Recommendations:*
+- "Cancel Meeting" — addresses non-urgent meetings
+- "Take rest" — recovery recommendation
+- Additional cards visible below (scrollable)
+
+**Design Rationale:** The card-based design makes each recommendation feel like a discrete, manageable action. Star ratings help users prioritize. The "Try Out" language is less committal than "Apply," reducing resistance to trying new behaviors. Bulk actions enable quick adoption for users who trust the AI.
+
+---
+
+### 5.5.6 Task Management Screens
+
+---
+
+#### Figure 5.15: My Tasks Screen
+
+![My Tasks](../images/tasks/15_my_tasks.png)
+
+**Purpose:** Central task management with productivity overview.
+
+**Visual Elements:**
+
+*Header:*
+- "My Tasks" title with user avatar
+- Weekly progress card: "Your Weekly progress" showing "50% productivity" with trend graph
+
+*Statistics Cards:*
+- "Today's Tasks: 7" in teal card
+- "calendar view" card with calendar icon for alternate view
+
+*Calendar Strip:*
+- Same week view pattern as home screen
+- Current date highlighted
+
+*Task List:*
+- Individual task cards with color-coded priority bars:
+  - "Lecture" — 9:00 AM, "pattern recognition lecture"
+    - Tags: "University", "urgent" (red tag)
+    - Orange accent bar indicating high priority
+  - "Meeting" — 11:00 AM, "Online Meeting for pipeline"
+    - Tags: "personal", "urgent"
+    - Green accent bar
+
+*Add Task Button:*
+- Floating action button (+) for creating new tasks
+
+*Bottom Navigation:*
+- Category filters visible: "personal", "urgent"
+
+**Design Rationale:** The productivity percentage provides motivation. Color-coded priority bars enable quick visual scanning. Tags allow flexible categorization. The floating add button follows Material Design conventions for primary actions.
+
+---
+
+#### Figure 5.16: Upload Tasks Screen
+
+![Upload Tasks](../images/tasks/16_upload_tasks.png)
+
+**Purpose:** Allow users to add tasks manually or extract them from files using AI.
+
+**Visual Elements:**
+
+*Header:*
+- "Upload Tasks" with back arrow
+
+*Two Expandable Sections:*
+
+**Add Tasks manually (expanded):**
+- Form fields:
+  - Task name: text input
+  - Subject: text input
+  - Deadline: date picker
+  - Priority: radio buttons (High, Medium, Low)
+- "ADD" button
+
+**Extract Tasks via AI (expanded):**
+- File type options: "Audio", "DOCS", "video"
+- Loading indicator showing processing status
+- Results preview:
+  - "1. example of task one extracted from files." ✓
+  - "2. example of task two extracted from files." ✓
+  - "3. example of task three extracted from files." ✓
+- Selection indicator: "2 tasks are selected"
+- "ADD" button to confirm extracted tasks
+
+**Design Rationale:** Two clear paths accommodate different user preferences. Manual entry for quick additions; AI extraction for processing meeting recordings or documents. The preview with checkboxes lets users verify and select which extracted tasks to keep.
+
+---
+
+### 5.5.7 Integration Screens
+
+---
+
+#### Figure 5.17: Integrations Screen
+
+![Integrations](../images/integrations/17_integrations.png)
+
+**Purpose:** Manage connections to third-party services for automatic data synchronization.
+
+**Visual Elements:**
+
+*Header:*
+- "Integration" title with back arrow
+
+*Connected Services Summary:*
+- Visual indicators: "4 Connected", "1 paused", "1 Need setup"
+- "Last synced: 2 minutes ago"
+- "sync all" button
+
+*Services List:*
+
+**Google Tasks:**
+- Status: "connected" (green badge)
+- Info: "3 events today", "Last synced: 2 minutes Ago"
+- Google Tasks icon
+
+**Google Class Room:**
+- Status: "not connected" (red badge)
+- "Need permission" notice with required permissions:
+  - View your Google Classroom courses
+  - Manage assignments and grades
+  - Manage assignments and grades
+- "Connect" button
+
+**Design Rationale:** Clear status indicators show what's working and what needs attention. The permissions list sets transparent expectations before users connect services.
+
+---
+
+#### Figure 5.18: Integrations Screen (Continued)
+
+![Integrations Continued](../images/integrations/18_integrations_continued.png)
+
+**Purpose:** Additional service integrations including Zoom and university portals.
+
+**Visual Elements:**
+
+**Google Class Room (continued):**
+- Same details as previous screen
+
+**Zoom Meetings:**
+- Status: "attention" (yellow badge)
+- Message: "Connection error Failed to refresh token. Please re-authenticate"
+- "re authenticate" button
+
+**University Portal:**
+- Status: "configured" (green badge)
+- Description: "Connected to student information system. Syncs courses, grades, and announcements"
+- "configurations" button
+
+**Design Rationale:** Different status states (connected, not connected, attention, configured) are clearly distinguished. Error states include actionable resolution steps (re-authenticate). The university portal integration shows the system's extensibility to educational contexts.
+
+---
+
+### 5.5.8 Notebook Library Screens
+
+---
+
+#### Figure 5.19: Notebook Library — Create New
+
+![Notebook Create](../images/notebookLibrary/19_notebook_create.png)
+
+**Purpose:** Entry point for creating new notebooks from various source types.
+
+**Visual Elements:**
+
+*Header:*
+- "Notebook Library" title with back arrow
+- Tab options: "Create New" (active), "Most recent"
+
+*Welcome Section:*
+- Illustration of stacked documents
+- "Let's get started" message
+- "Create your new notebook" instruction
+
+*Upload Options:*
+- "Upload your files here" label
+- Six source type buttons:
+  - PDF (teal)
+  - Images (teal)
+  - Audio (gradient)
+  - Website (gradient)
+  - YouTube (gradient)
+  - Copied text (gradient)
+
+**Design Rationale:** The variety of source options demonstrates the system's flexibility. Users can create notebooks from documents, recordings, web content, or even copied text. Visual differentiation between options uses subtle gradient variations.
+
+---
+
+#### Figure 5.20: Notebook Content — Library View
+
+![Notebook Library](../images/notebookLibrary/20_notebook_library.png)
+
+**Purpose:** Display uploaded sources within a notebook.
+
+**Visual Elements:**
+
+*Header:*
+- Notebook name: "AI_generated_notebook name"
+- Edit icon for renaming
+
+*Library Section:*
+- List of uploaded sources with type indicators:
+  - "The uploaded image_1 name" (image icon)
+  - "The uploaded image_1 name" (image icon)
+  - "The uploaded pdf name" (PDF icon)
+  - "The uploaded URL page name" (link icon)
+  - "The uploaded copied Text" (text icon)
+
+*Add More:*
+- "+ Add a source" button
+
+*Bottom Navigation:*
+- Three tabs: "Library" (active), "Chat", "AI studio"
+
+**Design Rationale:** The source list shows what content has been added to the notebook. Type icons help users identify sources quickly. The three-tab navigation separates content management (Library), interaction (Chat), and generation (AI studio).
+
+---
+
+#### Figure 5.21: Notebook — Chat Interface
+
+![Notebook Chat](../images/notebookLibrary/21_notebook_chat.png)
+
+**Purpose:** Allow users to ask questions about their notebook content using RAG.
+
+**Visual Elements:**
+
+*Header:*
+- Notebook name
+- "Based on 2 sources uploaded" indicator
+
+*Content Summary:*
+- Title: "Decoding Machine Learning: Foundations, Types and Deep Networks"
+- AI-generated summary: Comprehensive overview of the IBM source, explaining ML as artificial intelligence focused on learning from training data, contrasting with older rule-based approaches, describing the operational process of transforming raw data into numerical representations, and categorizing ML methods into three paradigms.
+
+*Chat Input:*
+- Text field: "Ask me anything..."
+- Send button
+- Microphone button for voice input
+
+*Bottom Navigation:*
+- "Chat" tab active
+
+**Design Rationale:** The summary gives users immediate value from their uploaded content. The chat interface enables natural language queries. Voice input accommodates hands-free use.
+
+---
+
+#### Figure 5.22: Notebook — AI Studio
+
+![Notebook AI Studio](../images/notebookLibrary/22_notebook_ai_studio.png)
+
+**Purpose:** Generate study materials and extract tasks from notebook content.
+
+**Visual Elements:**
+
+*Header:*
+- Notebook name
+
+*Generate with AI Studio Section:*
+- Four generation options, each with edit icon:
+  - "Audio Overview" — Generate audio summary
+  - "Extract Tasks" — Pull tasks from content
+  - "Flashcards" — Create study flashcards
+  - "Quiz" — Generate quiz questions
+
+*Generated Media Section:*
+- Previously generated items:
+  - "Machine Learning Quiz"
+  - "Machine Learning Flashcards"
+
+*Bottom Navigation:*
+- "AI studio" tab active
+
+**Design Rationale:** The AI studio transforms passive content into active learning materials. The options address different learning styles (audio, visual flashcards, interactive quizzes). Previously generated items are saved for reuse.
+
+---
+
+### 5.5.9 AI Companion Screen
+
+---
+
+#### Figure 5.23: AI Companion Chat
+
+![AI Companion Chat](../images/wire_frames/23_ai_companion_chat.png)
+
+**Purpose:** Provide conversational interface for emotional support, task management, and queries.
+
+**Visual Elements:**
+
+*Header:*
+- "AI companion" title with back arrow
+- Robot avatar with greeting: "Hi, Ahmed! How is your day?"
+- Subtext: "speak with your companion"
+
+*Chat Interface:*
+- Message bubbles:
+  - User messages (right-aligned, teal background)
+  - Assistant responses (left-aligned, light gray background)
+- Conversation flow with alternating messages
+
+*Quick Action Chips:*
+- Pre-defined prompts at bottom:
+  - "life advice from your day"
+  - "Add tasks via assistant"
+  - "your diary or moment"
+
+*Input Area:*
+- Text input: "Ask me anything..."
+- Microphone button for voice input
+
+**Design Rationale:** The friendly robot character creates a welcoming atmosphere. Quick action chips help users who aren't sure what to say. The chat bubble pattern is familiar from messaging apps. Voice input enables hands-free interaction.
+
+---
+
+### 5.5.10 Profile & Settings Screens
+
+---
+
+#### Figure 5.24: Profile Settings Screen
+
+![Profile Settings](../images/profile/24_profile_settings.png)
+
+**Purpose:** Central hub for account management and app settings.
+
+**Visual Elements:**
+
+*Header:*
+- Back arrow
+- Profile picture placeholder
+- User name: "Ahmed Mohamed"
+- Decorative wave gradient in brand colors
+
+*Settings Options:*
+- "My Account" — Account details and management
+- "Notifications" — Toggle switch (currently ON)
+- "Change password" — Security settings
+- "Languages" — Current selection: "English"
+- "Terms and Privacy Policy" — Legal documents
+
+*Logout:*
+- "Logout" button with icon (red text indicating destructive action)
+
+**Design Rationale:** Clean, scannable list of settings. Toggle switches for binary options. Language selection shown inline. Logout is separated and colored to prevent accidental taps.
+
+---
+
+#### Figure 5.25: Profile — Personal Data Tab
+
+![Profile Personal Data](../images/profile/25_profile_personal_data.png)
+
+**Purpose:** View and edit personal information.
+
+**Visual Elements:**
+
+*Header:*
+- "Profile" title
+- "Edit" button
+- Tab navigation: "Personal data" (active), "Contact info", "Questions"
+
+*Sentry AI Branding:*
+- Logo and tagline: "Help us tailor your experience by telling us a bit about yourself"
+
+*Form Fields:*
+- Name: "Alexander Oxlade Chamberlain"
+- Email: "Alex_Oxain@gmail.com"
+- Birth date: "2004-05-09"
+- Email: "Alex_Oxain@gmail.com" (displayed twice, likely for confirmation)
+
+**Design Rationale:** The three-tab structure organizes different types of profile information. Edit mode is clearly indicated. Pre-filled data shows users what's stored.
+
+---
+
+#### Figure 5.26: Profile — Contact Info Tab
+
+![Profile Contact Info](../images/profile/26_profile_contact_info.png)
+
+**Purpose:** Manage contact and location information.
+
+**Visual Elements:**
+
+*Same header and tab structure*
+
+*Form Fields:*
+- Country: "Egypt"
+- City: "Cairo"
+- Address: "Almazah, Heliopolis, Cairo"
+- Mobile Number: "01234567899"
+
+**Design Rationale:** Separating contact info from personal data keeps forms manageable. Location information could be used for timezone-aware scheduling or local recommendations.
+
+---
+
+### 5.5.11 Wireframes Overview
+
+The wireframe diagrams show the complete application architecture and user flows.
+
+---
+
+#### Figure 5.27: Complete App Flow Diagram
+
+![Wireframe Complete](../images/wire_frames/27_wireframe_complete.png)
+
+**Purpose:** Show the complete application architecture and navigation structure.
+
+**Visual Elements:**
+- Central "Home" screen connecting to all major sections
+- Flow 1: Onboarding + Login sequence (left side)
+- Flow 2: Main app sections radiating from Home
+- Color-coded groupings for different functional areas
+- Connecting lines showing navigation paths
+
+**Design Rationale:** This bird's-eye view demonstrates the hub-and-spoke navigation model. Users can see that Home is the central point and all features are accessible within a few taps.
+
+---
+
+#### Figure 5.28: Onboarding + Login Flow
+
+![Wireframe Onboarding](../images/wire_frames/28_wireframe_onboarding.png)
+
+**Purpose:** Detail the first-time user experience flow.
+
+**Visual Elements:**
+- Sequence of onboarding screens
+- Login and signup branches
+- Email verification step
+- Profile setup screens
+- Path to Home screen
+
+**Design Rationale:** The flow shows how new users are guided from first launch to productive use, ensuring no user gets lost during initial setup.
+
+---
+
+#### Figure 5.29: Tasks and Profile Flow
+
+![Wireframe Tasks Profile](../images/wire_frames/29_wireframe_tasks_profile.png)
+
+**Purpose:** Detail the task management and profile management flows.
+
+**Visual Elements:**
+- Tasks section: My Tasks → Upload Tasks
+- Profile section: Settings → Personal Data → Contact Info → Questions
+- Home screen as navigation hub
+- Connecting paths between related screens
+
+**Design Rationale:** Shows how task and profile management are organized as separate but accessible flows from the home screen.
+
+---
+
+#### Figure 5.30: Notebook Library Flow
+
+![Wireframe Notebook](../images/wire_frames/30_wireframe_notebook.png)
+
+**Purpose:** Detail the notebook library feature flow.
+
+**Visual Elements:**
+- Create notebook entry point
+- Library view with sources
+- Chat interface for queries
+- AI Studio for content generation
+- Tab-based navigation within notebooks
+
+**Design Rationale:** The notebook flow demonstrates how users progress from creating notebooks to interacting with and generating content from them.
+
+---
+
+#### Figure 5.31: Burnout and Integrations Flow
+
+![Wireframe Burnout](../images/wire_frames/31_wireframe_burnout.png)
+
+**Purpose:** Detail the burnout analysis and integrations flows.
+
+**Visual Elements:**
+- Burnout section: Score → Details → Workload → Recommendations
+- Integrations section: Service list → Configuration
+- Home screen connections
+- AI Recommendations as destination from burnout flow
+
+**Design Rationale:** Shows how users navigate from high-level burnout score to detailed analysis and actionable recommendations.
+
+---
+
+## 5.6 Responsive Design Considerations
+
+### 5.6.1 Mobile-First Approach
+
+Sentry AI was designed mobile-first, recognizing that users often check their burnout status throughout the day from their phones. The mobile interface prioritizes:
+
+- **Thumb-friendly navigation** with bottom tab bar
 - **Touch-optimized targets** (minimum 44x44 points)
 - **Scannable content** optimized for quick glances
-- **Offline awareness** with graceful handling of connectivity issues
+- **One-handed operation** for common tasks
 
-### 5.7.2 Tablet and Web Adaptations
+### 5.6.2 Component Consistency
 
-On larger screens, the interface adapts to take advantage of available space:
-
-- **Side navigation** replaces bottom navigation on tablets
-- **Multi-column layouts** display more information simultaneously
-- **Expanded visualizations** provide richer data representation
-- **Keyboard shortcuts** enable power-user workflows on web
-
----
-
-## 5.8 Accessibility Considerations
-
-### 5.8.1 Visual Accessibility
-
-- **Contrast ratios** exceed WCAG 2.1 AA requirements (4.5:1 for text)
-- **Color is not the sole indicator** — icons and labels accompany color-coded status
-- **Text scaling** is supported up to 200% without layout breaking
-- **Focus indicators** are clearly visible for keyboard navigation
-
-### 5.8.2 Motor Accessibility
-
-- **Touch targets** meet minimum size requirements (44x44 points)
-- **Gestures have alternatives** — swipe actions include button equivalents
-- **Timeout accommodations** allow users to extend time-limited operations
-
-### 5.8.3 Screen Reader Support
-
-- **Semantic markup** ensures logical reading order
-- **Labels describe** all interactive elements
-- **State changes** are announced appropriately
-- **Images include** descriptive alt text
+Design components maintain consistency across all screens:
+- Card corner radius remains constant
+- Button styles are uniform
+- Spacing follows a consistent grid
+- Typography scale is applied systematically
 
 ---
 
-## 5.9 Summary
+## 5.7 Accessibility Considerations
 
-The UI/UX design of Sentry AI prioritizes user well-being at every level. Color psychology informs a palette that calms rather than agitates. Typography ensures comfortable reading during extended use. Navigation patterns minimize cognitive load for users already experiencing stress.
+### 5.7.1 Visual Accessibility
 
-The 30 screens across nine functional areas provide a comprehensive interface for burnout detection, personalized recommendations, task management, and emotional support. Each screen is designed with intention—balancing information density with clarity, encouraging action without creating pressure, and maintaining consistency across the entire experience.
+- **Contrast ratios** meet WCAG 2.1 AA requirements
+- **Color is not the sole indicator** — text labels accompany color-coded status
+- **Text remains readable** at various sizes
+- **Focus states** are clearly visible
 
-This design foundation supports the application's core mission: helping users recognize and prevent burnout through an interface that is itself a source of calm and support rather than additional stress.
+### 5.7.2 Interaction Accessibility
+
+- **Touch targets** meet minimum size requirements
+- **Clear labels** on all interactive elements
+- **Logical reading order** for screen readers
+- **Alternative text** for illustrations
 
 ---
 
-## Suggested Figures
+## 5.8 Summary
 
-| Figure | Description |
-|--------|-------------|
-| 5.1 | Color palette with hex codes and usage examples |
-| 5.2 | Typography scale showing heading and body styles |
-| 5.3 | Icon set samples |
-| 5.4 | Navigation structure diagram |
-| 5.5-5.34 | Individual screen designs (30 screens from Figma) |
+The UI/UX design of Sentry AI reflects a deep understanding of the psychological needs of users experiencing burnout. The light blue color palette creates calm. Friendly illustrations humanize the experience. Clear navigation prevents frustration. Progressive disclosure manages cognitive load.
+
+The 30+ screens across seven functional areas create a comprehensive interface for:
+- Onboarding and authentication (9 screens)
+- Task management (2 screens)
+- Burnout analysis and recommendations (4 screens)
+- AI companion interaction (1 screen)
+- Notebook library (4 screens)
+- Integrations (2 screens)
+- Profile and settings (3 screens)
+- Wireframes and flow documentation (5 screens)
+
+Every design decision—from the color of a button to the wording of a prompt—was made with the user's well-being in mind. The result is an interface that doesn't just display information about burnout; it actively contributes to the user's sense of calm, control, and hope.
