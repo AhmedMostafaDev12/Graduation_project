@@ -190,18 +190,7 @@ sequenceDiagram
 
 ### 6.3.2 Repository Pattern (Data Access)
 
-Services interact with the database through SQLAlchemy ORM, following repository-like patterns:
-
-```python
-# Conceptual structure (not literal code)
-class BurnoutRepository:
-    def __init__(self, db: Session):
-        self.db = db
-
-    def get_user_profile(self, user_id: int) -> UserProfile
-    def save_burnout_analysis(self, analysis: BurnoutAnalysis) -> None
-    def get_recent_analyses(self, user_id: int, days: int) -> List[BurnoutAnalysis]
-```
+Services interact with the database through SQLAlchemy ORM, following repository-like patterns. The repository pattern encapsulates data access logic by providing methods for common database operations such as retrieving user profiles, saving burnout analyses, and fetching recent analyses within a specified timeframe. This pattern initializes with a database session that handles all queries and transactions.
 
 **Benefits:**
 - **Testability:** Database logic can be mocked
@@ -210,29 +199,7 @@ class BurnoutRepository:
 
 ### 6.3.3 Dependency Injection
 
-FastAPI's dependency injection system provides database sessions and authentication:
-
-```python
-from fastapi import Depends
-from sqlalchemy.orm import Session
-
-# Dependency provider
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Usage in endpoint
-@app.get("/burnout/score")
-async def get_burnout_score(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    # db and current_user automatically injected
-    ...
-```
+FastAPI's dependency injection system provides database sessions and authentication through a dependency provider function that creates a database session, yields it to the endpoint, and ensures proper cleanup in a finally block. Endpoints declare dependencies using FastAPI's Depends mechanism, which automatically injects database sessions and the current authenticated user into endpoint functions. This eliminates the need for manual session creation and ensures resources are properly released.
 
 **Benefits:**
 - **Clean Code:** No manual session management in endpoints
@@ -283,24 +250,10 @@ sequenceDiagram
 ### 6.4.2 JWT Token Structure
 
 **Access Token (Short-lived: 15 minutes):**
-```json
-{
-  "sub": "user_id_123",
-  "email": "user@example.com",
-  "exp": 1704123456,
-  "iat": 1704122556
-}
-```
+The access token payload contains the user ID as the subject claim, the user's email address, an expiration timestamp set to 15 minutes from issuance, and an issued-at timestamp. This token is used for authenticating API requests and expires quickly to minimize security risks.
 
 **Refresh Token (Long-lived: 7 days):**
-```json
-{
-  "sub": "user_id_123",
-  "type": "refresh",
-  "exp": 1704728356,
-  "iat": 1704123456
-}
-```
+The refresh token payload contains the user ID as the subject claim, a type field identifying it as a refresh token, an expiration timestamp set to 7 days from issuance, and an issued-at timestamp. This token is used to obtain new access tokens without requiring re-authentication.
 
 **Security Measures:**
 - **Short Access Token Lifetime:** Limits exposure if token stolen
@@ -312,19 +265,7 @@ sequenceDiagram
 
 **Role-Based Access Control (RBAC) - Simple Implementation:**
 
-Currently, Sentry AI uses **user-level authorization** where users can only access their own data:
-
-```python
-def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
-    payload = decode_jwt(token)
-    user_id = payload.get("sub")
-    return get_user_by_id(user_id)
-
-@app.get("/burnout/score")
-def get_burnout_score(current_user: User = Depends(get_current_user)):
-    # Implicitly authorized: can only see own burnout score
-    return calculate_burnout_score(current_user.id)
-```
+Currently, Sentry AI uses **user-level authorization** where users can only access their own data. The authorization approach extracts the user from the JWT token by decoding it and retrieving the user ID from the subject claim, then loads the full user object from the database. Endpoints that require authentication use this current user dependency, which implicitly ensures users can only access their own data since all operations use the authenticated user's ID. This creates a secure isolation boundary where each user's data remains private.
 
 **Future Extension:** Admin roles for organizational deployments.
 
@@ -457,18 +398,7 @@ erDiagram
 
 **1. JSON Columns for Flexibility**
 
-Tables like `burnout_analyses` use JSON columns for storing complex, evolving data structures:
-
-```sql
--- metrics column stores workload metrics
-{
-  "total_active_tasks": 12,
-  "overdue_tasks": 3,
-  "work_hours_today": 9,
-  "meetings_today": 5,
-  "back_to_back_meetings": 2
-}
-```
+Tables like `burnout_analyses` use JSON columns for storing complex, evolving data structures. The metrics column stores workload-related data including counts of total active tasks, overdue tasks, work hours for the current day, number of meetings scheduled, and instances of back-to-back meetings. This JSON format allows for flexible storage of metrics that may vary between users or evolve over time as new metrics are added to the system.
 
 **Benefits:**
 - **Schema Evolution:** Add new metrics without ALTER TABLE
@@ -481,18 +411,7 @@ Tables like `burnout_analyses` use JSON columns for storing complex, evolving da
 
 **2. Unified Integration Provider ID**
 
-The `tasks` table includes `integration_provider_task_id` to track external task IDs from any source:
-
-```sql
--- Google Tasks
-integration_provider_task_id = "google_tasks_ABC123"
-
--- Google Classroom
-integration_provider_task_id = "google_classroom_XYZ789"
-
--- Extracted from audio
-integration_provider_task_id = NULL
-```
+The `tasks` table includes `integration_provider_task_id` to track external task IDs from any source. This field stores provider-specific identifiers such as Google Tasks IDs with a "google_tasks_" prefix, Google Classroom IDs with a "google_classroom_" prefix, or NULL for tasks created manually or extracted from audio recordings. The consistent naming convention allows the system to identify the task's origin and prevent duplicate imports.
 
 **Benefits:**
 - **Extensibility:** New integrations don't require schema changes
@@ -509,30 +428,7 @@ User authentication data (`users`) separated from profile data (`user_profiles`)
 
 ### 6.5.3 Vector Database Design
 
-The `guidebook_strategies` table stores RAG knowledge base using PGVector:
-
-```sql
-CREATE TABLE guidebook_strategies (
-    id SERIAL PRIMARY KEY,
-    strategy_id VARCHAR UNIQUE NOT NULL,
-    category VARCHAR NOT NULL,  -- 'workload', 'time_management', 'meetings', etc.
-    title VARCHAR NOT NULL,
-    description TEXT NOT NULL,
-    when_to_use TEXT,
-    action_steps JSONB,
-    prerequisites JSONB,
-    expected_outcome TEXT,
-    time_investment VARCHAR,
-    difficulty_level VARCHAR,
-    embedding vector(1024),  -- PGVector type for Voyage AI embeddings
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Index for similarity search
-CREATE INDEX ON guidebook_strategies
-USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
-```
+The `guidebook_strategies` table stores RAG knowledge base using PGVector. The table schema includes a serial primary key, a unique strategy identifier, a category field for filtering strategies by type (workload, time management, meetings, etc.), title and description fields for the strategy content, metadata about when to use the strategy, action steps stored as JSONB, prerequisites stored as JSONB, expected outcomes, time investment estimates, difficulty levels, and a vector column storing 1024-dimensional embeddings from Voyage AI. An IVFFlat index on the embedding column enables fast approximate nearest neighbor searches using cosine similarity operations with 100 inverted lists for optimal performance.
 
 **Figure 6.5:** Guidebook strategies table schema with vector embeddings.
 
@@ -543,28 +439,7 @@ WITH (lists = 100);
 - **Structured Metadata:** Category, prerequisites enable filtering before vector search
 
 **Example Strategy Record:**
-```json
-{
-  "strategy_id": "cancel_low_value_meetings",
-  "category": "meeting_management",
-  "title": "Cancel Low-Value Recurring Meetings",
-  "description": "Identify and cancel recurring meetings that no longer provide value...",
-  "when_to_use": "When meeting overload is primary burnout driver...",
-  "action_steps": [
-    "Review recurring meetings for past 2 weeks",
-    "Identify meetings where you didn't speak or learn anything",
-    "Send cancellation notice 24h in advance"
-  ],
-  "prerequisites": {
-    "user_can_decline_meetings": true,
-    "user_manages_calendar": true
-  },
-  "expected_outcome": "Reduce meeting hours by 15-25%",
-  "time_investment": "15 minutes",
-  "difficulty_level": "low",
-  "embedding": [0.023, -0.145, 0.089, ...]  // 1024 dimensions
-}
-```
+A typical strategy record contains a unique identifier like "cancel_low_value_meetings", categorized under "meeting_management" with a descriptive title. The strategy includes detailed descriptions of what it accomplishes, guidance on when to apply it (such as when meeting overload is the primary burnout driver), concrete action steps (reviewing recent meetings, identifying low-value ones, and sending timely cancellation notices), prerequisites indicating the user must have calendar management authority and the ability to decline meetings, expected outcomes quantifying the impact (reducing meeting hours by 15-25%), estimated time investment (15 minutes), difficulty classification (low), and a 1024-dimensional embedding vector for semantic similarity searches.
 
 ### 6.5.4 Indexing Strategy
 
@@ -573,24 +448,7 @@ WITH (lists = 100);
 - Unique constraints on `email`, `integration_provider_task_id`
 
 **Secondary Indexes (Performance):**
-```sql
--- User lookups
-CREATE INDEX idx_users_email ON users(email);
-
--- Task queries by user and date
-CREATE INDEX idx_tasks_user_due ON tasks(user_id, due_date);
-CREATE INDEX idx_tasks_user_status ON tasks(user_id, status);
-
--- Burnout analysis time-series queries
-CREATE INDEX idx_burnout_user_time ON burnout_analyses(user_id, analyzed_at DESC);
-
--- Integration lookups
-CREATE INDEX idx_integrations_user_service ON integrations(user_id, service);
-
--- Vector similarity search
-CREATE INDEX idx_guidebook_embedding ON guidebook_strategies
-USING ivfflat (embedding vector_cosine_ops);
-```
+The database implements targeted secondary indexes to optimize common query patterns. User email lookups are accelerated with a dedicated index on the email column. Task queries benefit from composite indexes on user ID combined with due date and user ID combined with status, enabling efficient filtering of user-specific tasks by their deadlines or completion state. Burnout analyses use a descending index on user ID and analysis timestamp to support time-series queries showing burnout trends over time. Integration lookups leverage a composite index on user ID and service name for fast retrieval of connected accounts. Vector similarity searches use an IVFFlat index on the embedding column with cosine similarity operations to enable efficient semantic search across strategies.
 
 **Index Selection Rationale:**
 - **User ID:** Most queries filter by user (multi-tenant pattern)
@@ -664,21 +522,10 @@ flowchart TB
 **Key Design Patterns:**
 
 **Password Hashing:**
-```python
-# bcrypt with cost factor 12
-hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(12))
-```
+Passwords are secured using bcrypt with a cost factor of 12, which provides strong protection against brute-force attacks. The password is first encoded to UTF-8 bytes, then hashed using bcrypt's automatic salt generation, ensuring each password receives a unique salt value that's embedded in the final hash.
 
 **JWT Generation:**
-```python
-def create_access_token(user_id: int, expires_delta: timedelta = timedelta(minutes=15)):
-    payload = {
-        "sub": str(user_id),
-        "exp": datetime.utcnow() + expires_delta,
-        "iat": datetime.utcnow()
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-```
+Access tokens are created by constructing a payload containing the user ID as the subject claim (converted to string), an expiration timestamp calculated by adding the specified delta (defaulting to 15 minutes) to the current UTC time, and an issued-at timestamp recording when the token was created. This payload is then encoded using the HMAC-SHA256 algorithm with the application's secret key, producing a signed JWT that can be verified on subsequent requests.
 
 **Security Considerations:**
 - **Salted Password Hashing:** Each password gets unique salt (bcrypt automatic)
@@ -755,42 +602,7 @@ flowchart TB
 
 **1. Workload Analyzer (60% Weight)**
 
-Analyzes quantitative workload metrics:
-
-```python
-class WorkloadAnalyzer:
-    def calculate_score(self, user_id: int, baseline: UserBaseline) -> WorkloadScore:
-        metrics = self._fetch_metrics(user_id)
-
-        # Task-based scoring (30% of workload)
-        task_score = self._calculate_task_score(
-            total_tasks=metrics.total_active_tasks,
-            overdue_tasks=metrics.overdue_tasks,
-            baseline_tasks=baseline.avg_active_tasks
-        )
-
-        # Time-based scoring (40% of workload)
-        time_score = self._calculate_time_score(
-            work_hours_today=metrics.work_hours_today,
-            work_hours_week=metrics.work_hours_this_week,
-            baseline_hours=baseline.avg_work_hours_per_day
-        )
-
-        # Meeting-based scoring (30% of workload)
-        meeting_score = self._calculate_meeting_score(
-            meetings_today=metrics.meetings_today,
-            meeting_hours=metrics.total_meeting_hours_today,
-            back_to_back=metrics.back_to_back_meetings,
-            baseline_meetings=baseline.avg_meetings_per_day
-        )
-
-        return WorkloadScore(
-            total=task_score + time_score + meeting_score,
-            task_component=task_score,
-            time_component=time_score,
-            meeting_component=meeting_score
-        )
-```
+Analyzes quantitative workload metrics by fetching current user metrics and calculating three weighted components. The task-based component (30% of workload) evaluates the total number of active tasks and overdue tasks compared to the user's baseline average. The time-based component (40% of workload) assesses daily and weekly work hours against the user's typical work schedule. The meeting-based component (30% of workload) analyzes the number of meetings, total meeting hours, and instances of back-to-back meetings relative to the user's normal meeting load. These three scores are combined into a total workload score while preserving individual component values for detailed analysis of burnout drivers.
 
 **Scoring Logic:**
 - **Baseline Comparison:** User's current metrics vs. their historical average
@@ -799,83 +611,14 @@ class WorkloadAnalyzer:
 
 **2. Sentiment Analyzer (40% Weight)**
 
-Analyzes qualitative emotional indicators:
-
-```python
-class SentimentAnalyzer:
-    def analyze_sentiment(self, user_id: int) -> SentimentScore:
-        # Collect text inputs
-        diary_entries = self._get_recent_diary_entries(user_id, days=7)
-        check_ins = self._get_recent_check_ins(user_id, days=7)
-        companion_chats = self._get_recent_companion_messages(user_id, days=7)
-
-        # Combine and analyze
-        combined_text = "\n".join(diary_entries + check_ins + companion_chats)
-
-        # Use LLM for sentiment classification
-        sentiment = self._classify_sentiment(combined_text)
-
-        return SentimentScore(
-            polarity=sentiment.polarity,  # -1 to +1
-            intensity=sentiment.intensity,  # 0 to 1
-            dominant_emotion=sentiment.emotion,  # anxiety, frustration, etc.
-            adjustment_score=self._map_to_score(sentiment.polarity)
-        )
-```
+Analyzes qualitative emotional indicators by collecting text from multiple sources including diary entries, daily check-ins, and AI companion chat messages from the past 7 days. These text fragments are concatenated into a unified corpus that captures the user's recent emotional state. The combined text is processed by an LLM-based sentiment classifier that evaluates emotional tone and returns a structured assessment including polarity (ranging from -1 for negative to +1 for positive), intensity (scaled from 0 to 1 indicating strength of emotion), and the dominant emotion category (such as anxiety, frustration, exhaustion, calm, or motivated). The polarity value is then mapped to an adjustment score that contributes to the overall burnout calculation.
 
 **Sentiment Classification Prompt:**
-```
-Analyze the emotional tone of these user journal entries and check-ins.
-
-Text: {combined_text}
-
-Classify sentiment as:
-1. Polarity: negative (-1), neutral (0), positive (+1)
-2. Intensity: low (0.3), medium (0.6), high (1.0)
-3. Dominant emotion: anxiety, frustration, exhaustion, calm, motivated
-
-Return JSON: {{"polarity": ..., "intensity": ..., "emotion": "..."}}
-```
+The LLM receives instructions to analyze the emotional tone of user journal entries and check-ins, classifying sentiment across three dimensions: polarity scored on a scale from negative (-1) through neutral (0) to positive (+1), intensity categorized as low (0.3), medium (0.6), or high (1.0), and dominant emotion identified from categories including anxiety, frustration, exhaustion, calm, and motivated. The prompt requests structured JSON output containing these three classification values to ensure consistent parsing and integration into the burnout scoring system.
 
 **3. Burnout Engine (Score Aggregator)**
 
-Combines workload and sentiment into final score:
-
-```python
-class BurnoutEngine:
-    def calculate_final_score(self, user_id: int) -> BurnoutAnalysis:
-        # Get baseline
-        baseline = self.baseline_calculator.get_or_create_baseline(user_id)
-
-        # Calculate components
-        workload_score = self.workload_analyzer.calculate_score(user_id, baseline)
-        sentiment_score = self.sentiment_analyzer.analyze_sentiment(user_id)
-
-        # Weighted combination (60% workload, 40% sentiment)
-        base_score = (workload_score.total * 0.6) + (sentiment_score.polarity * 40)
-
-        # Apply sentiment adjustment
-        final_score = base_score + sentiment_score.adjustment_score
-
-        # Clamp to 0-100
-        final_score = max(0, min(100, final_score))
-
-        # Classify level
-        level = self._classify_level(final_score)  # GREEN, YELLOW, RED
-
-        # Identify primary issues
-        issues = self._identify_issues(workload_score, sentiment_score)
-
-        return BurnoutAnalysis(
-            user_id=user_id,
-            final_score=final_score,
-            level=level,
-            workload_score=workload_score.total,
-            sentiment_score=sentiment_score.polarity,
-            primary_issues=issues,
-            analyzed_at=datetime.utcnow()
-        )
-```
+Combines workload and sentiment into final score by first retrieving or creating the user's behavioral baseline, then calculating both workload and sentiment component scores. The base burnout score applies a weighted combination formula giving 60% weight to workload metrics and 40% weight to sentiment polarity. An additional sentiment adjustment score is then added to account for emotional intensity. The resulting score is clamped to a valid range of 0-100 to ensure consistency. The numeric score is classified into a risk level (GREEN, YELLOW, or RED), and primary burnout drivers are identified by analyzing which components contribute most significantly to the elevated score. All results are packaged into a comprehensive BurnoutAnalysis object that includes the user ID, final score, risk level, individual component scores, identified issues, and analysis timestamp.
 
 **Level Classification:**
 - **GREEN (0-39):** Healthy workload, positive sentiment
@@ -884,36 +627,7 @@ class BurnoutEngine:
 
 **4. Behavioral Learning (Baseline Calculator)**
 
-Learns user-specific "normal" levels:
-
-```python
-class BehavioralLearning:
-    def calculate_baseline(self, user_id: int) -> UserBaseline:
-        # Get last 30 days of analysis history
-        analyses = self._get_recent_analyses(user_id, days=30)
-
-        if len(analyses) < 7:
-            return self._use_global_defaults()
-
-        # Calculate rolling averages
-        avg_active_tasks = mean([a.metrics['total_active_tasks'] for a in analyses])
-        avg_work_hours = mean([a.metrics['work_hours_today'] for a in analyses])
-        avg_meetings = mean([a.metrics['meetings_today'] for a in analyses])
-
-        # Detect personal patterns
-        weekend_worker = self._detect_weekend_work(analyses)
-        early_bird_or_night_owl = self._detect_work_schedule(analyses)
-
-        return UserBaseline(
-            user_id=user_id,
-            avg_active_tasks=avg_active_tasks,
-            avg_work_hours_per_day=avg_work_hours,
-            avg_meetings_per_day=avg_meetings,
-            works_weekends=weekend_worker,
-            work_pattern=early_bird_or_night_owl,
-            calculated_at=datetime.utcnow()
-        )
-```
+Learns user-specific "normal" levels by retrieving the past 30 days of burnout analysis history for the user. If fewer than 7 analyses exist, the system falls back to global defaults since insufficient data prevents accurate personalization. With adequate history, rolling averages are calculated for key metrics including active task counts, daily work hours, and daily meeting frequency. The system also performs pattern detection to identify behavioral characteristics such as whether the user regularly works on weekends and their typical work schedule (early morning versus late night patterns). These calculated averages and detected patterns form a personalized baseline that represents the user's normal operating state, enabling more accurate detection of concerning deviations.
 
 **Benefits:**
 - **Personalization:** "Too many meetings" differs per user
@@ -974,40 +688,7 @@ sequenceDiagram
 
 **1. Vector Retriever**
 
-Performs semantic search over guidebook strategies:
-
-```python
-class VectorRetriever:
-    def retrieve_strategies(
-        self,
-        burnout_analysis: BurnoutAnalysis,
-        top_k: int = 20
-    ) -> List[Strategy]:
-        # Build query from burnout analysis
-        query_text = self._build_query(burnout_analysis)
-        # Example: "User has high meeting overload (5 meetings/day),
-        #           low delegation ability, experiencing time pressure"
-
-        # Generate embedding for query
-        query_embedding = self.voyage_client.embed([query_text])[0]
-
-        # Perform similarity search with PGVector
-        results = self.db.execute(f"""
-            SELECT
-                strategy_id,
-                title,
-                description,
-                category,
-                action_steps,
-                prerequisites,
-                (embedding <=> '{query_embedding}') AS distance
-            FROM guidebook_strategies
-            ORDER BY distance ASC
-            LIMIT {top_k}
-        """).fetchall()
-
-        return [self._hydrate_strategy(row) for row in results]
-```
+Performs semantic search over guidebook strategies by first constructing a natural language query that describes the user's burnout situation, including specific details like meeting overload severity, delegation capabilities, and identified stressors. This query text is converted into a 1024-dimensional embedding vector using the Voyage AI embedding service. A PGVector similarity search is then executed against the guidebook_strategies table, using the cosine distance operator to find strategies whose embeddings are semantically closest to the query embedding. The database returns the top-k most similar strategies (default 20) ordered by increasing distance, including all relevant strategy metadata such as IDs, titles, descriptions, categories, action steps, and prerequisites. These database rows are then hydrated into full Strategy objects for further processing.
 
 **PGVector Operator:**
 - `<=>` : Cosine distance (lower = more similar)
@@ -1015,47 +696,7 @@ class VectorRetriever:
 
 **2. Relevance Ranker**
 
-Filters and re-ranks retrieved strategies based on user context:
-
-```python
-class RelevanceRanker:
-    def rank_strategies(
-        self,
-        strategies: List[Strategy],
-        user_profile: UserProfile,
-        burnout_analysis: BurnoutAnalysis
-    ) -> List[RankedStrategy]:
-        scored_strategies = []
-
-        for strategy in strategies:
-            # Base score from vector similarity (0-1)
-            base_score = 1 - strategy.distance
-
-            # Constraint filtering
-            if not self._meets_prerequisites(strategy, user_profile):
-                continue  # Skip if user can't execute this strategy
-
-            # Relevance boosting
-            category_boost = self._category_relevance(
-                strategy.category,
-                burnout_analysis.primary_issues
-            )
-
-            # Burnout level matching
-            level_match = self._level_appropriateness(
-                strategy.difficulty_level,
-                burnout_analysis.level
-            )
-
-            final_score = base_score * category_boost * level_match
-
-            scored_strategies.append(
-                RankedStrategy(strategy=strategy, score=final_score)
-            )
-
-        # Return top 5
-        return sorted(scored_strategies, key=lambda x: x.score, reverse=True)[:5]
-```
+Filters and re-ranks retrieved strategies based on user context by iterating through candidate strategies and applying multiple scoring factors. The base similarity score is derived by inverting the cosine distance (producing a 0-1 similarity metric). Each strategy is first checked against prerequisite constraints based on the user's profile; strategies requiring capabilities the user lacks (such as delegation authority) are immediately excluded. For qualifying strategies, category relevance boosting amplifies scores when the strategy's category aligns with the user's primary burnout issues. An additional level-matching factor adjusts scores based on whether the strategy's difficulty level is appropriate for the user's current burnout severity (favoring low-difficulty quick wins for high-burnout users). The final score multiplies the base similarity by these boosting factors, and the top 5 highest-scoring strategies are returned.
 
 **Filtering Logic:**
 - **Prerequisites Check:** If strategy requires `can_delegate=True`, skip for users who can't delegate
@@ -1064,105 +705,18 @@ class RelevanceRanker:
 
 **3. LLM Generator (Personalization)**
 
-Transforms generic strategies into event-specific recommendations:
+Transforms generic strategies into event-specific recommendations by building comprehensive context from the user's tasks, profile, and burnout analysis. For each ranked strategy, a detailed prompt is constructed that includes the generic strategy template and rich user-specific context. The LLM is called with a low temperature setting (0.3) to ensure consistent, focused outputs rather than creative variations. The LLM response is parsed into structured recommendation data including a concise title, descriptive paragraph, rationale explaining the burnout reduction benefit, and specific action steps that reference actual events from the user's calendar. Each generated recommendation is linked to the user, burnout analysis, and original strategy, with the relevance score preserved and status initialized to pending.
 
-```python
-class LLMGenerator:
-    async def generate_recommendations(
-        self,
-        strategies: List[RankedStrategy],
-        user_tasks: List[Task],
-        user_profile: UserProfile,
-        burnout_analysis: BurnoutAnalysis
-    ) -> List[Recommendation]:
-        # Build context
-        context = self._build_context(user_tasks, user_profile, burnout_analysis)
-
-        # For each strategy, generate personalized version
-        recommendations = []
-        for ranked_strategy in strategies:
-            prompt = self._build_prompt(ranked_strategy.strategy, context)
-
-            # Call Groq API
-            response = await self.groq_client.generate(
-                model="llama-3.1-70b-versatile",
-                prompt=prompt,
-                temperature=0.3,  # Low for consistency
-                max_tokens=500
-            )
-
-            # Parse LLM response
-            rec = self._parse_response(response)
-
-            recommendations.append(Recommendation(
-                user_id=user_profile.user_id,
-                burnout_analysis_id=burnout_analysis.id,
-                strategy_id=ranked_strategy.strategy.strategy_id,
-                title=rec.title,
-                description=rec.description,
-                rationale=rec.rationale,
-                action_steps=rec.action_steps,  # Event-specific steps
-                relevance_score=ranked_strategy.score,
-                status='pending',
-                created_at=datetime.utcnow()
-            ))
-
-        return recommendations
-```
-
-**Prompt Template Example:**
-
-```
-You are a burnout prevention assistant. Generate a personalized recommendation based on:
-
-STRATEGY:
-Title: {strategy.title}
-Description: {strategy.description}
-Action Steps: {strategy.action_steps}
-
-USER CONTEXT:
-- Burnout Level: {burnout_analysis.level} ({burnout_analysis.final_score}/100)
-- Primary Issues: {burnout_analysis.primary_issues}
-- Job Role: {user_profile.job_role}
-- Can Delegate: {user_profile.can_delegate}
-- Manages Team: {user_profile.manages_team}
-
-TODAY'S SCHEDULE:
-{format_user_tasks(user_tasks)}
-
-TASK:
-Adapt this strategy to the user's specific situation. Reference actual tasks or meetings from their schedule. Make it actionable and specific.
-
-Output format:
-{{
-  "title": "Short, actionable title",
-  "description": "One paragraph explaining what to do",
-  "rationale": "Why this will help reduce burnout",
-  "action_steps": [
-    "Step 1 with specific event reference",
-    "Step 2...",
-    "Step 3..."
-  ]
-}}
-```
+**Prompt Template:**
+The LLM receives a comprehensive prompt positioning it as a burnout prevention assistant with access to both the generic strategy (title, description, and action steps) and detailed user context including burnout level and score, identified primary issues, job role, delegation capability, team management status, and today's complete schedule formatted with actual tasks and meetings. The prompt instructs the LLM to adapt the generic strategy to the user's specific situation by referencing actual calendar events and creating actionable, concrete steps. The expected output format specifies structured JSON containing a short actionable title, explanatory description paragraph, burnout reduction rationale, and numbered action steps that incorporate specific event references from the user's schedule.
 
 **Example Generated Recommendation:**
 
 **Generic Strategy:**
-> **Title:** Cancel Low-Value Recurring Meetings
-> **Action Steps:**
-> 1. Review your recurring meetings
-> 2. Identify low-value meetings
-> 3. Send cancellation notice
+The generic strategy provides a high-level approach titled "Cancel Low-Value Recurring Meetings" with three basic steps: reviewing recurring meetings, identifying those providing little value, and sending cancellation notices.
 
 **Personalized Recommendation (Event-Specific):**
-> **Title:** Cancel Your 3:30 PM Team Sync
-> **Description:** Your "Team Sync" meeting at 3:30 PM appears to be a recurring meeting where you haven't contributed in the last 3 occurrences. This creates back-to-back meeting pressure with your 2:00 PM client call.
-> **Rationale:** Removing this 30-minute meeting will reduce your meeting hours by 12% this week and eliminate the back-to-back pattern causing stress.
-> **Action Steps:**
-> 1. Send a message to the meeting organizer today: "I'm stepping out of the weekly Team Sync to focus on higher-priority work. Please share meeting notes via Slack."
-> 2. Decline all future occurrences in your calendar
-> 3. Use the freed 30 minutes as a buffer after client calls
+The personalized version identifies a specific meeting ("Team Sync" at 3:30 PM) that the system detected the user hasn't actively participated in during the last three occurrences, noting it creates scheduling pressure by following a 2:00 PM client call. The recommendation quantifies the impact (12% reduction in weekly meeting hours) and provides concrete action steps including exact messaging to send the organizer, instructions to decline all future occurrences, and a suggested alternative use for the freed time as a buffer period after client calls. This transformation makes the generic advice immediately actionable with specific calendar events, precise impact metrics, and ready-to-use communication templates.
 
 **Benefits of Event-Specific Recommendations:**
 - **Immediate Actionability:** User knows exactly what to do
@@ -1233,138 +787,23 @@ flowchart TB
 
 **1. Audio/Video → Speech-to-Text**
 
-```python
-class AudioTranscriber:
-    async def transcribe(self, audio_file: UploadFile) -> str:
-        # Upload to AssemblyAI
-        upload_url = await self.assemblyai_client.upload(audio_file)
-
-        # Request transcription with speaker diarization
-        transcript_id = await self.assemblyai_client.transcribe(
-            audio_url=upload_url,
-            speaker_labels=True,  # Identify different speakers
-            language_detection=True  # Auto-detect language
-        )
-
-        # Poll for completion
-        transcript = await self._poll_for_completion(transcript_id)
-
-        return transcript.text
-```
+The audio transcription process uploads the audio file to AssemblyAI's service, then submits a transcription request with speaker diarization enabled to identify different speakers and automatic language detection to handle multilingual content. The system polls the transcription job until completion and returns the final transcript text. This asynchronous approach allows handling long audio files without blocking the application.
 
 **2. Images → OCR (Vision Model)**
 
-```python
-class ImageOCR:
-    async def extract_text(self, image_file: UploadFile) -> str:
-        # Convert image to base64
-        image_base64 = self._encode_image(image_file)
-
-        # Call Groq Vision API
-        response = await self.groq_client.vision_generate(
-            model="llama-3.2-90b-vision-preview",
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Extract all text from this image"},
-                    {"type": "image_url", "image_url": image_base64}
-                ]
-            }]
-        )
-
-        return response.content
-```
+Image text extraction converts the uploaded image file to base64 encoding, then sends it to the Groq Vision API using the llama-3.2-90b-vision model. The API request includes both a text instruction to extract all visible text and the base64-encoded image data. The vision model analyzes the image and returns the extracted text content, handling both typed text and handwritten notes.
 
 **3. Text → Structured Tasks (LLM Parsing)**
 
-```python
-class TaskParser:
-    async def parse_tasks(self, text: str, user_id: int) -> List[Task]:
-        prompt = f"""
-Extract all tasks and deadlines from the following text.
-Return a JSON array of tasks with this structure:
-
-{{
-  "tasks": [
-    {{
-      "title": "Task name",
-      "description": "Optional details",
-      "due_date": "YYYY-MM-DD HH:MM",
-      "priority": "high|medium|low",
-      "category": "work|personal|study",
-      "estimated_hours": 2.5
-    }}
-  ]
-}}
-
-Text:
-{text}
-"""
-
-        response = await self.groq_client.generate(
-            model="llama-3.1-70b-versatile",
-            prompt=prompt,
-            temperature=0.1,  # Low for consistency
-            response_format={"type": "json_object"}  # Enforce JSON
-        )
-
-        # Parse JSON response
-        parsed = json.loads(response.content)
-
-        # Convert to Task objects
-        tasks = []
-        for task_data in parsed["tasks"]:
-            tasks.append(Task(
-                user_id=user_id,
-                title=task_data["title"],
-                description=task_data.get("description", ""),
-                due_date=self._parse_date(task_data.get("due_date")),
-                priority=task_data.get("priority", "medium"),
-                category=task_data.get("category", "work"),
-                estimated_hours=task_data.get("estimated_hours"),
-                source="extracted_" + file_type,
-                created_at=datetime.utcnow()
-            ))
-
-        return tasks
-```
+Task parsing from text uses an LLM to extract structured task information from unstructured content. The prompt instructs the LLM to identify all tasks and deadlines in the provided text and return them as a JSON array with specific fields including title, description, due date in YYYY-MM-DD HH:MM format, priority level (high/medium/low), category (work/personal/study), and estimated hours. The LLM is called with low temperature (0.1) for consistency and enforced JSON output format. The JSON response is parsed and converted into Task database objects with appropriate field mappings, default values for optional fields, source attribution indicating extraction method, and timestamp for creation tracking.
 
 **Example Input/Output:**
 
 **Input (Transcribed Lecture Audio):**
-> "Okay class, for next week you need to submit your research proposal by Wednesday at 11:59 PM. Also, don't forget the group presentation is on Friday at 2 PM. Oh, and the midterm exam is scheduled for October 25th."
+The example shows a professor's verbal announcement containing three distinct tasks: submitting a research proposal due Wednesday at 11:59 PM, a group presentation scheduled for Friday at 2 PM, and a midterm exam on October 25th. This natural language input demonstrates the type of unstructured content the system processes.
 
 **LLM Parsed Output:**
-```json
-{
-  "tasks": [
-    {
-      "title": "Submit research proposal",
-      "description": "From class lecture",
-      "due_date": "2025-10-16 23:59",
-      "priority": "high",
-      "category": "study",
-      "estimated_hours": 4.0
-    },
-    {
-      "title": "Group presentation",
-      "description": "",
-      "due_date": "2025-10-18 14:00",
-      "priority": "high",
-      "category": "study",
-      "estimated_hours": 2.0
-    },
-    {
-      "title": "Midterm exam",
-      "description": "",
-      "due_date": "2025-10-25 09:00",
-      "priority": "high",
-      "category": "study",
-      "estimated_hours": 0
-    }
-  ]
-}
-```
+The LLM successfully extracts three structured task objects from the lecture transcript. The research proposal is identified with a specific deadline of October 16th at 23:59, categorized as high-priority study work with an estimated 4-hour time investment. The group presentation is scheduled for October 18th at 14:00, also high-priority study work requiring approximately 2 hours. The midterm exam is dated October 25th at 09:00 with high priority but zero estimated hours since it's a fixed-time event rather than preparatory work. Each task includes appropriate categorization, priority assessment, and time estimates inferred from the context.
 
 ---
 
@@ -1435,122 +874,9 @@ graph TB
 
 **LangGraph Implementation:**
 
-```python
-from langgraph.graph import StateGraph, END
+The AI Companion uses LangGraph to implement a stateful conversation flow. The system defines a state graph containing the conversation history, user ID, detected intent, task data, and advice context. Multiple processing nodes are added for classifying user intent, creating tasks, providing advice, saving journal entries, and generating responses. The graph connects these nodes with edges defining the conversation flow: starting with intent classification, branching conditionally based on the detected intent (task creation, advice seeking, or journaling), and finally generating an appropriate response before ending.
 
-class CompanionAgent:
-    def __init__(self):
-        self.graph = self._build_graph()
-
-    def _build_graph(self):
-        # Define state
-        workflow = StateGraph({
-            "messages": List[Message],
-            "user_id": int,
-            "intent": str,
-            "task_data": dict,
-            "advice_context": dict
-        })
-
-        # Add nodes
-        workflow.add_node("classify_intent", self._classify_intent)
-        workflow.add_node("create_task", self._create_task)
-        workflow.add_node("give_advice", self._give_advice)
-        workflow.add_node("save_journal", self._save_journal)
-        workflow.add_node("generate_response", self._generate_response)
-
-        # Add edges
-        workflow.add_edge("START", "classify_intent")
-
-        workflow.add_conditional_edges(
-            "classify_intent",
-            self._route_intent,
-            {
-                "task": "create_task",
-                "advice": "give_advice",
-                "journal": "save_journal"
-            }
-        )
-
-        workflow.add_edge("create_task", "generate_response")
-        workflow.add_edge("give_advice", "generate_response")
-        workflow.add_edge("save_journal", "generate_response")
-        workflow.add_edge("generate_response", END)
-
-        return workflow.compile()
-
-    async def _classify_intent(self, state):
-        last_message = state["messages"][-1].content
-
-        prompt = f"""
-Classify the user's intent:
-
-User message: "{last_message}"
-
-Intents:
-- task: User wants to create/manage a task
-- advice: User wants burnout advice or life coaching
-- journal: User is venting, sharing feelings, or journaling
-
-Return only the intent label.
-"""
-        response = await self.groq_client.generate(prompt)
-        state["intent"] = response.strip()
-        return state
-
-    async def _create_task(self, state):
-        last_message = state["messages"][-1].content
-
-        # Extract task details using LLM
-        task_data = await self._extract_task_from_message(last_message)
-
-        # Call Task Service API
-        task = await self.task_api_client.create_task(
-            user_id=state["user_id"],
-            **task_data
-        )
-
-        state["task_data"] = task
-        return state
-
-    async def _give_advice(self, state):
-        # Fetch user's current burnout status
-        burnout = await self.burnout_api_client.get_burnout_score(
-            user_id=state["user_id"]
-        )
-
-        state["advice_context"] = {
-            "burnout_score": burnout.final_score,
-            "burnout_level": burnout.level,
-            "primary_issues": burnout.primary_issues
-        }
-        return state
-
-    async def _save_journal(self, state):
-        last_message = state["messages"][-1].content
-
-        # Store as diary entry
-        await self.db.save_diary_entry(
-            user_id=state["user_id"],
-            content=last_message,
-            created_at=datetime.utcnow()
-        )
-
-        return state
-
-    async def _generate_response(self, state):
-        # Build context-aware prompt
-        if state["intent"] == "task":
-            prompt = f"User created task: {state['task_data']}. Confirm in friendly way."
-        elif state["intent"] == "advice":
-            prompt = f"User burnout: {state['advice_context']}. Give supportive advice."
-        else:
-            prompt = "User is journaling. Respond empathetically."
-
-        response = await self.groq_client.generate(prompt)
-        state["messages"].append(Message(role="assistant", content=response))
-        return state
-```
+The intent classification node extracts the user's last message and sends it to the LLM with instructions to categorize it as task-related, advice-seeking, or journaling/venting, returning the classified intent label. The task creation node extracts structured task information from the message using an LLM, then calls the Task Service API to create the task and stores the result in the state. The advice node fetches the user's current burnout score including the numeric score, risk level, and primary issues, storing this context for response generation. The journal node saves the user's message as a diary entry in the database with timestamp. The response generation node builds context-aware prompts based on the detected intent: confirming task creation in a friendly manner, providing supportive advice based on burnout context, or responding empathetically to journaling. The LLM generates the response which is appended to the conversation history.
 
 **Example Conversation:**
 
@@ -1664,112 +990,15 @@ flowchart TB
 
 **1. Text Chunking Strategy**
 
-Splits documents into semantic chunks for embedding:
-
-```python
-class SemanticChunker:
-    def chunk_text(self, text: str, max_chunk_size: int = 512) -> List[str]:
-        # Split by paragraphs first
-        paragraphs = text.split('\n\n')
-
-        chunks = []
-        current_chunk = ""
-
-        for para in paragraphs:
-            # If adding paragraph exceeds max size
-            if len(current_chunk) + len(para) > max_chunk_size:
-                if current_chunk:
-                    chunks.append(current_chunk.strip())
-                current_chunk = para
-            else:
-                current_chunk += "\n\n" + para
-
-        if current_chunk:
-            chunks.append(current_chunk.strip())
-
-        return chunks
-```
+The semantic chunking strategy splits documents into manageable pieces for embedding by first dividing text at paragraph boundaries (double newlines). It iteratively builds chunks by adding paragraphs until the accumulated text would exceed the maximum chunk size (default 512 characters). When a paragraph would cause overflow, the current chunk is saved and a new chunk is started. This approach preserves semantic coherence by keeping paragraphs intact rather than splitting mid-sentence, ensuring each chunk represents a complete thought or concept.
 
 **2. Notebook RAG Chat**
 
-Answers questions grounded in uploaded sources:
-
-```python
-class NotebookChatRetriever:
-    async def answer_question(
-        self,
-        notebook_id: int,
-        question: str
-    ) -> str:
-        # Generate question embedding
-        question_embedding = await self.voyage_client.embed([question])
-
-        # Retrieve relevant chunks from this notebook
-        relevant_chunks = self.db.execute(f"""
-            SELECT content, source_name
-            FROM notebook_chunks
-            WHERE notebook_id = {notebook_id}
-            ORDER BY embedding <=> '{question_embedding[0]}' ASC
-            LIMIT 5
-        """).fetchall()
-
-        # Build context from retrieved chunks
-        context = "\n\n".join([
-            f"[Source: {chunk.source_name}]\n{chunk.content}"
-            for chunk in relevant_chunks
-        ])
-
-        # Generate answer using LLM
-        prompt = f"""
-Answer the question based ONLY on the provided context. If the answer isn't in the context, say "I don't have information about that in your uploaded materials."
-
-Context:
-{context}
-
-Question: {question}
-
-Answer:
-"""
-
-        answer = await self.groq_client.generate(prompt)
-        return answer
-```
+The notebook chat system answers questions by grounding responses in uploaded source materials. When a question is received, it's first converted to an embedding vector using Voyage AI. The system then performs a similarity search across all chunks belonging to the specified notebook, using PGVector's cosine distance operator to find the 5 most relevant chunks. These chunks are concatenated with source attribution labels to build context. An LLM prompt instructs the model to answer strictly based on the provided context, explicitly refusing to answer if the information isn't present in the uploaded materials. This grounding approach prevents hallucination and ensures answers are factually supported by the user's documents.
 
 **3. AI Studio: Flashcard Generation**
 
-```python
-class FlashcardGenerator:
-    async def generate_flashcards(
-        self,
-        notebook_id: int,
-        num_cards: int = 10
-    ) -> List[Flashcard]:
-        # Get all content from notebook
-        content = self._get_notebook_content(notebook_id)
-
-        prompt = f"""
-Generate {num_cards} flashcards from this study material. Each flashcard should have:
-- Front: A clear question
-- Back: A concise answer
-
-Content:
-{content}
-
-Return JSON array:
-[
-  {{"front": "Question?", "back": "Answer"}},
-  ...
-]
-"""
-
-        response = await self.groq_client.generate(
-            prompt,
-            response_format={"type": "json_object"}
-        )
-
-        flashcards_data = json.loads(response)
-        return [Flashcard(**card) for card in flashcards_data]
-```
+The flashcard generator retrieves all content from a specified notebook and constructs a prompt asking the LLM to create a specified number of flashcards (default 10) from the study material. Each flashcard should have a clear question on the front and a concise answer on the back. The prompt requests structured JSON output as an array of flashcard objects. The LLM response is parsed from JSON and converted into Flashcard objects, providing students with automatically generated study materials from their uploaded content.
 
 ---
 
@@ -1829,35 +1058,7 @@ sequenceDiagram
 
 **Token Refresh Automation:**
 
-```python
-class TokenManager:
-    async def get_valid_token(self, integration: Integration) -> str:
-        # Check if token is expired or expires soon
-        if integration.expiry < datetime.utcnow() + timedelta(minutes=5):
-            # Refresh token
-            new_token = await self._refresh_token(integration)
-
-            # Update in database
-            integration.access_token = new_token.access_token
-            integration.expiry = new_token.expiry
-            self.db.commit()
-
-        return integration.access_token
-
-    async def _refresh_token(self, integration: Integration):
-        # Call OAuth provider's refresh endpoint
-        response = await httpx.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "refresh_token": integration.refresh_token,
-                "grant_type": "refresh_token"
-            }
-        )
-
-        return response.json()
-```
+The token management system ensures valid OAuth tokens are always available for external API calls. Before returning a token, it checks if the stored token has expired or will expire within the next 5 minutes. If expiration is imminent, the system automatically refreshes the token by calling the OAuth provider's token endpoint with the refresh token, client credentials, and appropriate grant type. The new access token and expiration time are updated in the database, ensuring seamless continued access to integrated services without user intervention. This proactive refresh approach prevents API call failures due to expired tokens.
 
 ---
 
@@ -1889,25 +1090,10 @@ All endpoints follow REST principles:
 ### 6.11.2 Request/Response Patterns
 
 **Standard Response Format:**
-```json
-{
-  "success": true,
-  "data": {...},
-  "message": "Operation successful"
-}
-```
+All successful API responses follow a consistent structure containing a success boolean set to true, a data field containing the requested resource or operation result, and an optional message string describing the operation outcome. This predictable format simplifies client-side response parsing and error handling.
 
 **Error Response Format:**
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INVALID_TOKEN",
-    "message": "JWT token expired",
-    "details": {...}
-  }
-}
-```
+Error responses use the same envelope structure but with success set to false and an error object containing a machine-readable error code (such as INVALID_TOKEN), a human-readable message explaining what went wrong (like "JWT token expired"), and optional details providing additional context for debugging or user feedback. This standardized error format enables clients to implement consistent error handling across all API endpoints.
 
 ### 6.11.3 Versioning Strategy
 
@@ -2026,28 +1212,10 @@ graph TB
 ### 6.13.2 Performance Optimizations
 
 **1. Database Connection Pooling:**
-```python
-# SQLAlchemy engine with connection pool
-engine = create_engine(
-    DATABASE_URL,
-    pool_size=10,          # Max 10 connections per instance
-    max_overflow=20,       # Allow 20 extra connections during spikes
-    pool_pre_ping=True,    # Verify connection before use
-    pool_recycle=3600      # Recycle connections after 1 hour
-)
-```
+The SQLAlchemy engine is configured with connection pooling to efficiently manage database connections. The pool maintains up to 10 connections per application instance under normal load, with the ability to create 20 additional overflow connections during traffic spikes. The pool_pre_ping option verifies each connection is still alive before use, preventing errors from stale connections. Connections are recycled after 1 hour to avoid long-lived connection issues and ensure fresh connections from the database server.
 
 **2. Async Operations:**
-```python
-# Non-blocking external API calls
-async def get_recommendations(user_id: int):
-    # These run concurrently
-    burnout_task = asyncio.create_task(analyze_burnout(user_id))
-    tasks_task = asyncio.create_task(fetch_user_tasks(user_id))
-
-    burnout, tasks = await asyncio.gather(burnout_task, tasks_task)
-    return generate_recommendations(burnout, tasks)
-```
+The system leverages asynchronous programming to handle concurrent operations efficiently. When generating recommendations, independent operations like analyzing burnout and fetching user tasks are launched as concurrent tasks using asyncio.create_task. These tasks execute in parallel, and asyncio.gather waits for both to complete before proceeding to generate recommendations. This non-blocking approach significantly reduces total execution time compared to sequential processing, especially when operations involve external API calls or database queries.
 
 **3. Caching Strategy (Future):**
 - **Redis:** Cache burnout scores (TTL: 1 hour)
@@ -2175,39 +1343,7 @@ sequenceDiagram
 
 **Pattern 2: Dependency Injection for Cross-Service Calls**
 
-When one service needs to trigger another service's logic:
-
-```python
-# Backend Service: Authentication
-class AuthService:
-    def __init__(self, db: Session):
-        self.db = db
-
-    async def create_user(self, user_data: dict) -> User:
-        # Create user in database
-        user = User(**user_data)
-        self.db.add(user)
-        self.db.commit()
-        return user
-
-# AI Service: Burnout Analysis (depends on user data)
-class BurnoutService:
-    def __init__(self, db: Session):
-        self.db = db  # Same database session
-
-    async def analyze(self, user_id: int) -> BurnoutAnalysis:
-        # Directly read user's tasks (created by Backend Service)
-        tasks = self.db.query(Task).filter(Task.user_id == user_id).all()
-
-        # AI analysis logic
-        score = self._calculate_burnout_score(tasks)
-
-        # Write result to shared database
-        analysis = BurnoutAnalysis(user_id=user_id, score=score)
-        self.db.add(analysis)
-        self.db.commit()
-        return analysis
-```
+When one service needs to trigger another service's logic, both services receive the same database session through dependency injection. The Authentication Service creates users by constructing User objects from provided data, adding them to the database session, and committing the transaction. The Burnout Analysis Service operates on the same shared database, directly querying tasks created by the Backend Service using standard SQLAlchemy filters. After calculating the burnout score from the retrieved tasks, it creates a BurnoutAnalysis object and commits it to the same database. This pattern eliminates the need for HTTP-based service-to-service communication, reducing latency and complexity while relying on the database to handle concurrency control and transaction isolation.
 
 **Key Points:**
 - Both services share the same SQLAlchemy `Session` object
@@ -2216,31 +1352,7 @@ class BurnoutService:
 
 **Pattern 3: External API Coordination**
 
-AI Services coordinate calls to external APIs (Groq, Voyage AI, AssemblyAI) but never call each other via HTTP:
-
-```python
-# Task Extraction Service
-class TaskExtractionService:
-    def __init__(self, db: Session, assemblyai_client, groq_client):
-        self.db = db
-        self.assemblyai = assemblyai_client
-        self.groq = groq_client
-
-    async def extract_from_audio(self, audio_file, user_id: int):
-        # 1. External API call: Transcription
-        transcript = await self.assemblyai.transcribe(audio_file)
-
-        # 2. External API call: LLM parsing
-        tasks_json = await self.groq.parse_tasks(transcript)
-
-        # 3. Write to shared database
-        for task_data in tasks_json["tasks"]:
-            task = Task(user_id=user_id, **task_data)
-            self.db.add(task)
-
-        self.db.commit()
-        return tasks
-```
+AI Services coordinate calls to external APIs without inter-service HTTP communication. The Task Extraction Service demonstrates this pattern by initializing with a shared database session plus clients for external services (AssemblyAI and Groq). When extracting tasks from audio, the service orchestrates a multi-step process: first calling AssemblyAI to transcribe the audio file, then sending the transcript to Groq's LLM for structured task parsing, and finally iterating through the parsed task data to create Task database objects which are committed in a single transaction. This approach keeps external API coordination within individual service boundaries while persisting results to the shared database for access by other services.
 
 ### 6.14.4 Data Flow Between Backend and AI Services
 
@@ -2273,27 +1385,7 @@ class TaskExtractionService:
 
 **Ensuring Consistency Across Services:**
 
-```python
-# Example: Burnout analysis with transactional safety
-@transactional
-async def analyze_and_recommend(user_id: int, db: Session):
-    try:
-        # Step 1: AI Service writes analysis
-        burnout_service = BurnoutService(db)
-        analysis = await burnout_service.analyze(user_id)
-
-        # Step 2: AI Service generates recommendations
-        rag_service = RAGService(db)
-        recommendations = await rag_service.generate(analysis.id)
-
-        # Both writes committed together
-        db.commit()
-
-    except Exception as e:
-        # Rollback both services' writes
-        db.rollback()
-        raise
-```
+Cross-service operations maintain data consistency through transactional boundaries. When performing burnout analysis with recommendation generation, the operation uses a transactional decorator to ensure atomicity. Both the BurnoutService and RAGService receive the same database session and perform their respective operations (analysis calculation and recommendation generation) within a try block. If both operations succeed, a single commit persists all changes atomically. If any exception occurs during either operation, the rollback ensures neither the analysis nor recommendations are saved, preventing orphaned or inconsistent data. This transactional approach guarantees that related data from multiple services is either fully committed or fully rolled back as a unit.
 
 **Benefits:**
 - Atomic operations: Either both analysis + recommendations succeed, or neither
