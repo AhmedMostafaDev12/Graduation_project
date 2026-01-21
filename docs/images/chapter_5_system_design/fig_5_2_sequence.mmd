@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant Client
+    participant FastAPI
+    participant AuthMiddleware
+    participant Service
+    participant Database
+
+    Client->>FastAPI: Request + JWT Token
+    FastAPI->>AuthMiddleware: Validate Token
+    AuthMiddleware->>AuthMiddleware: Decode JWT
+    alt Token Invalid
+        AuthMiddleware-->>Client: 401 Unauthorized
+    else Token Valid
+        AuthMiddleware->>Service: Execute Business Logic
+        Service->>Database: Query/Update Data
+        Database-->>Service: Return Data
+        Service-->>FastAPI: Response
+        FastAPI-->>Client: JSON Response
+    end

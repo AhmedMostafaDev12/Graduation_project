@@ -1,0 +1,7 @@
+stateDiagram-v2
+    [*] --> Initial
+    Initial --> Understanding: User sends message
+    Understanding --> CheckingData: Classify intent
+    CheckingData --> Responding: Fetch user context
+    Responding --> [*]: Send response
+    Responding --> Understanding: User continues conversation

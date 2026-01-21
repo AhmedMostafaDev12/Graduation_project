@@ -1156,7 +1156,177 @@ Example:
 
 ---
 
-## 7.15 Lessons Learned
+## 7.15 Flutter-Server Integration
+
+### 7.15.1 Overview
+
+The Flutter mobile application communicates with the backend and AI services through RESTful HTTP APIs. This section demonstrates the **authentication flow** as a representative example of client-server integration, showcasing how user login credentials travel from the mobile app to the server and back.
+
+### 7.15.2 Integration Architecture
+
+The Flutter app follows a **layered architecture** that separates UI, state management, and network communication:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Flutter UI<br/>(Login Screen)
+    participant Provider as Auth Provider<br/>(State Manager)
+    participant API as API Service<br/>(HTTP Client)
+    participant Backend as FastAPI Server<br/>(Backend Service)
+    participant DB as PostgreSQL<br/>(Database)
+
+    User->>UI: Enters email & password
+    UI->>Provider: login(email, password)
+    Provider->>API: POST /auth/login
+    API->>Backend: HTTP Request<br/>{email, password}
+    Backend->>DB: Verify credentials
+    DB-->>Backend: User data
+    Backend->>Backend: Generate JWT tokens
+    Backend-->>API: Response<br/>{access_token, refresh_token}
+    API->>API: Store tokens locally
+    API-->>Provider: LoginSuccess(user_data)
+    Provider->>Provider: Update auth state
+    Provider-->>UI: Navigate to Home
+    UI-->>User: Show Dashboard
+```
+
+**Figure 7.1:** Authentication Flow from Flutter Client to FastAPI Server
+
+### 7.15.3 Authentication Example: Login Flow
+
+**Step 1: User Interface Layer**
+
+The login screen captures user credentials and triggers the authentication process:
+
+- **Components:** Email TextField, Password TextField, Login Button
+- **Actions:** When user taps "Login", screen calls `AuthProvider.login(email, password)`
+- **UI Feedback:** Shows loading spinner while request processes
+
+**Step 2: State Management Layer (Provider)**
+
+The `AuthProvider` manages authentication state:
+
+- **Methods:**
+  - `login(email, password)` - Initiates login process
+  - `logout()` - Clears authentication state
+  - `isAuthenticated` - Boolean property indicating login status
+
+- **Responsibilities:**
+  - Calls `AuthService` to perform HTTP request
+  - Stores user data when login succeeds
+  - Notifies UI to rebuild (show Dashboard)
+  - Handles errors and displays appropriate messages
+
+**Step 3: API Service Layer**
+
+The `AuthService` handles HTTP communication with the backend server:
+
+- **Configuration:**
+  - Base URL: `http://localhost:8000` (development) or production URL
+  - Timeout: 10 seconds
+  - HTTP Library: Dio (Flutter's HTTP client)
+
+- **Login Method:**
+  - Sends POST request to `/auth/login`
+  - Request body: `{email, password}`
+  - Stores received tokens in Shared Preferences (local storage)
+  - Configures Authorization header for future requests: `Bearer <access_token>`
+
+- **Response Handling:**
+  - **Success (200):** Extract tokens, save locally, return user data
+  - **Unauthorized (401):** Throw "Invalid credentials" error
+  - **Server Error (500):** Throw "Network error"
+
+**Step 4: Backend Server (FastAPI)**
+
+The FastAPI endpoint receives and processes the login request:
+
+- **Endpoint:** `POST /auth/login`
+- **Process:**
+  1. Extract email/password from request body
+  2. Query database for user with matching email
+  3. Verify password using bcrypt hashing
+  4. Generate two JWT tokens:
+     - **Access Token:** Expires in 15 minutes (for API requests)
+     - **Refresh Token:** Expires in 30 days (for renewing access token)
+  5. Store refresh token in database
+  6. Return JSON response with tokens and user data
+
+- **Security Features:**
+  - Passwords hashed with bcrypt (never stored plaintext)
+  - JWT tokens signed with secret key
+  - Rate limiting prevents brute force attacks
+
+### 7.15.4 JWT Token Refresh Mechanism
+
+Access tokens expire after 15 minutes for security. The app automatically refreshes tokens without user intervention:
+
+**Automatic Refresh Flow:**
+
+1. User makes API request (e.g., fetch burnout score)
+2. Server rejects request with 401 (token expired)
+3. Dio interceptor detects 401 error
+4. App sends refresh token to `/auth/refresh` endpoint
+5. Server validates refresh token, issues new access token
+6. App retries original request with new token
+7. User sees data without noticing the refresh
+
+**Implementation:**
+- **Dio Interceptor:** Automatically intercepts 401 errors
+- **Refresh Endpoint:** `POST /auth/refresh` exchanges refresh token for new access token
+- **Fallback:** If refresh fails, user is logged out and redirected to login screen
+
+### 7.15.5 Data Flow for Other Features
+
+The same integration pattern applies to all features:
+
+**Fetching Burnout Score:**
+```
+Flutter Screen → BurnoutProvider.fetchScore()
+→ BurnoutService.getCurrentScore()
+→ GET /burnout/current (with JWT header)
+→ FastAPI returns {score, level, factors}
+→ Provider updates state
+→ UI displays score with animated gauge
+```
+
+**Creating a Task:**
+```
+Flutter Form → TaskProvider.createTask(title, due_date)
+→ TaskService.create(taskData)
+→ POST /tasks (with JWT header and task data)
+→ FastAPI validates, saves to database
+→ Returns created task with ID
+→ Provider adds task to local list
+→ UI shows new task in list
+```
+
+**Uploading Audio for Task Extraction:**
+```
+Flutter File Picker → TaskProvider.extractFromAudio(audioFile)
+→ TaskService.uploadAndExtract(file)
+→ POST /ai/extract/audio (multipart form data)
+→ AI Service transcribes with AssemblyAI
+→ LLM extracts tasks from transcript
+→ Returns list of extracted tasks
+→ Provider displays preview for user approval
+→ User confirms → Tasks saved to database
+```
+
+### 7.15.6 Integration Benefits
+
+This layered architecture provides:
+
+1. **Separation of Concerns:** UI components don't handle HTTP logic
+2. **Testability:** Each layer can be mocked and tested independently
+3. **Maintainability:** API changes only affect service layer
+4. **Reactivity:** UI automatically updates when backend data changes
+5. **Security:** Tokens stored securely, automatically refreshed
+6. **Error Handling:** Consistent error messages across the app
+
+---
+
+## 7.16 Lessons Learned
 
 ### 7.15.1 Technical Lessons
 

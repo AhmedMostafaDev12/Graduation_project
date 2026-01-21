@@ -1,0 +1,47 @@
+flowchart TB
+    subgraph "Burnout Analysis Service"
+        Router[Burnout Router<br/>/burnout/*]
+
+        subgraph "Analysis Engine Layer"
+            Workload[Workload Analyzer<br/>60% weight]
+            Sentiment[Sentiment Analyzer<br/>40% weight]
+            Engine[Burnout Engine<br/>Score Aggregator]
+            Baseline[Behavioral Learning<br/>Baseline Calculator]
+        end
+
+        subgraph "RAG Recommendation Layer"
+            Retriever[Vector Retriever<br/>PGVector Similarity]
+            Ranker[Relevance Ranker<br/>Score + Filter]
+            Generator[LLM Generator<br/>Groq API]
+            Personalizer[Recommendation Personalizer<br/>Event-Specific]
+        end
+
+        Router --> Engine
+        Engine --> Workload
+        Engine --> Sentiment
+        Engine --> Baseline
+
+        Engine --> Retriever
+        Retriever --> Ranker
+        Ranker --> Generator
+        Generator --> Personalizer
+    end
+
+    Tasks[(Tasks DB)]
+    Profile[(User Profile)]
+    Vector[(Guidebook<br/>Vectors)]
+    Groq[Groq API<br/>Llama 3.1]
+    Voyage[Voyage AI<br/>Embeddings]
+
+    Workload --> Tasks
+    Sentiment --> Tasks
+    Baseline --> Profile
+
+    Retriever --> Vector
+    Retriever --> Voyage
+    Generator --> Groq
+    Personalizer --> Tasks
+
+    style Engine fill:#4ECDC4
+    style Generator fill:#F4A261
+    style Vector fill:#FFD93D

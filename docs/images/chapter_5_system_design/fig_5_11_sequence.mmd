@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    participant User
+    participant Frontend
+    participant Backend
+    participant OAuth as OAuth Provider<br/>(Google)
+    participant API as External API<br/>(Google Tasks)
+    participant DB as Database
+
+    Note over User,DB: OAuth Authorization Flow
+    User->>Frontend: Click "Connect Google Tasks"
+    Frontend->>Backend: GET /integrations/google_tasks/auth
+    Backend->>Backend: Generate OAuth URL + state
+    Backend-->>Frontend: Redirect URL
+    Frontend->>OAuth: Redirect to Google OAuth
+    OAuth->>User: Show consent screen
+    User->>OAuth: Grant permissions
+    OAuth->>Frontend: Redirect with auth code
+    Frontend->>Backend: GET /integrations/google_tasks/callback?code=XXX
+    Backend->>OAuth: Exchange code for tokens
+    OAuth-->>Backend: {access_token, refresh_token, expiry}
+    Backend->>DB: Store tokens
+    DB-->>Backend: Success
+    Backend-->>Frontend: Integration connected
+
+    Note over User,DB: Sync Flow
+    Frontend->>Backend: POST /integrations/sync
+    Backend->>DB: Get stored tokens
+    Backend->>Backend: Check if token expired
+    alt Token Expired
+        Backend->>OAuth: Refresh token
+        OAuth-->>Backend: New access token
+        Backend->>DB: Update tokens
+    end
+    Backend->>API: GET /tasks
+    API-->>Backend: Tasks list
+    Backend->>DB: Upsert tasks
+    DB-->>Backend: Success
+    Backend-->>Frontend: Sync complete

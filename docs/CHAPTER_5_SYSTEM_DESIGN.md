@@ -309,7 +309,7 @@ erDiagram
 
     USER_PROFILES {
         int id PK
-        int user_id FK UK
+        int user_id FK
         string job_role
         string seniority_level
         boolean can_delegate

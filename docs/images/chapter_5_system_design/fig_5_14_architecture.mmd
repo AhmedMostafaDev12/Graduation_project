@@ -1,0 +1,51 @@
+graph TB
+    subgraph "Backend Services Layer"
+        Auth[Authentication Service]
+        UserMgmt[User Management]
+        IntegrationSvc[Integration Service]
+    end
+
+    subgraph "AI Services Layer"
+        Burnout[Burnout Analysis]
+        RAG[RAG Recommendation]
+        TaskExt[Task Extraction]
+        Companion[AI Companion]
+        Notebook[Notebook Library]
+    end
+
+    subgraph "Shared Data Layer"
+        DB[(PostgreSQL + PGVector<br/>Shared Database)]
+    end
+
+    subgraph "External Services"
+        Groq[Groq API<br/>LLM]
+        Voyage[Voyage AI<br/>Embeddings]
+        Assembly[AssemblyAI<br/>Transcription]
+    end
+
+    %% Backend to Database
+    Auth -->|Read/Write| DB
+    UserMgmt -->|Read/Write| DB
+    IntegrationSvc -->|Read/Write| DB
+
+    %% AI Services to Database
+    Burnout -->|Read/Write| DB
+    RAG -->|Read/Write| DB
+    TaskExt -->|Write| DB
+    Companion -->|Read/Write| DB
+    Notebook -->|Read/Write| DB
+
+    %% AI Services to External APIs
+    Burnout -.->|API Call| Groq
+    RAG -.->|Embedding Request| Voyage
+    RAG -.->|LLM Request| Groq
+    TaskExt -.->|Transcription| Assembly
+    TaskExt -.->|OCR/LLM| Groq
+    Companion -.->|Conversation| Groq
+    Notebook -.->|Embedding| Voyage
+    Notebook -.->|LLM| Groq
+
+    style DB fill:#6C5CE7
+    style Groq fill:#FFD93D
+    style Voyage fill:#FFD93D
+    style Assembly fill:#FFD93D

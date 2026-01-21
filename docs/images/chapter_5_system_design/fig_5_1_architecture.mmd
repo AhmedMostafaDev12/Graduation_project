@@ -1,0 +1,62 @@
+graph TB
+    subgraph "Client Layer"
+        Mobile[Mobile App<br/>Flutter]
+        Web[Web App<br/>React/Future]
+    end
+
+    subgraph "Backend Services Layer"
+        Auth[Authentication Service<br/>JWT + OAuth]
+        Burnout[Burnout Analysis Service<br/>Scoring + RAG]
+        Tasks[Task Management<br/>+ Extraction]
+        Notebook[Notebook Library<br/>RAG + AI Studio]
+        Companion[AI Companion<br/>LangGraph]
+        Integration[Integration Service<br/>OAuth + Sync]
+    end
+
+    subgraph "Data Layer"
+        PG[(PostgreSQL<br/>Relational Data)]
+        Vector[(PGVector Extension<br/>Embeddings)]
+    end
+
+    subgraph "External Services"
+        Groq[Groq API<br/>Llama 3.1]
+        Voyage[Voyage AI<br/>Embeddings]
+        Assembly[AssemblyAI<br/>Transcription]
+        Google[Google APIs<br/>Tasks/Calendar]
+    end
+
+    Mobile --> Auth
+    Mobile --> Burnout
+    Mobile --> Tasks
+    Mobile --> Notebook
+    Mobile --> Companion
+    Mobile --> Integration
+
+    Web -.-> Auth
+    Web -.-> Burnout
+
+    Auth --> PG
+    Burnout --> PG
+    Burnout --> Vector
+    Burnout --> Groq
+    Burnout --> Voyage
+
+    Tasks --> PG
+    Tasks --> Groq
+    Tasks --> Assembly
+
+    Notebook --> PG
+    Notebook --> Vector
+    Notebook --> Groq
+    Notebook --> Voyage
+
+    Companion --> PG
+    Companion --> Groq
+
+    Integration --> PG
+    Integration --> Google
+
+    style Burnout fill:#4ECDC4
+    style Notebook fill:#B8A4D9
+    style Companion fill:#F4A261
+    style Vector fill:#FFD93D

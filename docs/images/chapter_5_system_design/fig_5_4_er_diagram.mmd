@@ -1,0 +1,112 @@
+erDiagram
+    USERS ||--o{ AUTH_PROVIDERS : has
+    USERS ||--o{ USER_PROFILES : has
+    USERS ||--o{ TASKS : owns
+    USERS ||--o{ INTEGRATIONS : connects
+    USERS ||--o{ BURNOUT_ANALYSES : receives
+    USERS ||--o{ RECOMMENDATIONS : gets
+    USERS ||--o{ NOTEBOOKS : creates
+
+    USERS {
+        int id PK
+        string email UK
+        string password
+        string first_name
+        string last_name
+        date birthday
+        timestamp created_at
+        boolean is_verified
+        string refresh_token
+        datetime refresh_token_expiry
+    }
+
+    AUTH_PROVIDERS {
+        int id PK
+        int user_id FK
+        string provider
+        string email
+    }
+
+    USER_PROFILES {
+        int id PK
+        int user_id FK
+        string job_role
+        string seniority_level
+        boolean can_delegate
+        boolean manages_team
+        string biggest_challenge
+        string country
+        string city
+        json preferences
+        timestamp updated_at
+    }
+
+    TASKS {
+        int id PK
+        int user_id FK
+        string title
+        string description
+        string task_type
+        string status
+        string priority
+        string category
+        datetime due_date
+        datetime start_time
+        datetime end_time
+        string source
+        string integration_provider_task_id UK
+        boolean can_delegate
+        float estimated_hours
+        boolean is_recurring
+        boolean is_optional
+        string attendees
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    INTEGRATIONS {
+        int id PK
+        int user_id FK
+        string service
+        string access_token
+        string refresh_token
+        datetime expiry
+    }
+
+    BURNOUT_ANALYSES {
+        int id PK
+        int user_id FK
+        datetime analyzed_at
+        int final_score
+        string level
+        json metrics
+        json components
+        json insights
+        json identified_issues
+        json sentiment_data
+    }
+
+    RECOMMENDATIONS {
+        int id PK
+        int user_id FK
+        int burnout_analysis_id FK
+        string strategy_id
+        string title
+        text description
+        text rationale
+        json action_steps
+        float relevance_score
+        string status
+        datetime created_at
+        datetime applied_at
+    }
+
+    NOTEBOOKS {
+        int id PK
+        int user_id FK
+        string title
+        json sources
+        text ai_summary
+        timestamp created_at
+        timestamp updated_at
+    }

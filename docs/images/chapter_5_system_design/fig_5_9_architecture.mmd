@@ -1,0 +1,50 @@
+graph TB
+    subgraph "AI Companion (LangGraph)"
+        Router[Companion Router<br/>/companion/chat]
+
+        subgraph "LangGraph State Machine"
+            Start((Start))
+            Classify[Classify Intent<br/>LLM]
+            TaskIntent[Task Creation Intent]
+            AdviceIntent[Advice Request Intent]
+            JournalIntent[Journaling Intent]
+
+            CreateTask[Create Task Node<br/>Call Task API]
+            GiveAdvice[Give Advice Node<br/>Query Burnout Data]
+            SaveJournal[Save Journal Node<br/>Store Diary Entry]
+
+            Respond[Generate Response<br/>LLM]
+            End((End))
+        end
+
+        Start --> Classify
+        Classify -->|"add task"| TaskIntent
+        Classify -->|"need advice"| AdviceIntent
+        Classify -->|"just venting"| JournalIntent
+
+        TaskIntent --> CreateTask
+        AdviceIntent --> GiveAdvice
+        JournalIntent --> SaveJournal
+
+        CreateTask --> Respond
+        GiveAdvice --> Respond
+        SaveJournal --> Respond
+
+        Respond --> End
+    end
+
+    Router --> Start
+
+    TaskAPI[Task Service API]
+    BurnoutAPI[Burnout Service API]
+    DB[(User Diary DB)]
+    Groq[Groq API<br/>Llama 3.1]
+
+    Classify --> Groq
+    CreateTask --> TaskAPI
+    GiveAdvice --> BurnoutAPI
+    SaveJournal --> DB
+    Respond --> Groq
+
+    style Classify fill:#4ECDC4
+    style Respond fill:#F4A261

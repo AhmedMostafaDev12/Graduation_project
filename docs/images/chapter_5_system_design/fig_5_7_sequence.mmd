@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    participant Engine as Burnout Engine
+    participant Retriever as Vector Retriever
+    participant Vector as PGVector DB
+    participant Voyage as Voyage AI
+    participant Ranker as Relevance Ranker
+    participant Generator as LLM Generator
+    participant Groq as Groq API
+    participant Tasks as Tasks DB
+
+    Engine->>Retriever: Request recommendations<br/>(burnout_analysis)
+
+    Retriever->>Retriever: Extract query from analysis<br/>"High meeting overload, low delegation"
+    Retriever->>Voyage: Generate embedding<br/>for query
+    Voyage-->>Retriever: Query vector [1024D]
+
+    Retriever->>Vector: Similarity search<br/>SELECT * ORDER BY<br/>embedding <=> query_vector<br/>LIMIT 20
+    Vector-->>Retriever: Top 20 similar strategies
+
+    Retriever->>Ranker: Filter and rank strategies
+    Ranker->>Ranker: Apply user constraints<br/>(can_delegate, manages_team)
+    Ranker->>Ranker: Score by relevance<br/>+ burnout_level match
+    Ranker-->>Generator: Top 5 relevant strategies
+
+    Generator->>Tasks: Fetch user's actual tasks<br/>and calendar events
+    Tasks-->>Generator: Tasks + Meetings list
+
+    Generator->>Generator: Build prompt with:<br/>strategies + tasks + context
+    Generator->>Groq: Generate personalized<br/>recommendations
+    Groq-->>Generator: LLM response with<br/>event-specific actions
+
+    Generator->>Engine: Final recommendations<br/>(with specific events referenced)

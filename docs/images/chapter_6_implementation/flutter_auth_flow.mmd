@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant User
+    participant UI as Flutter UI<br/>(Login Screen)
+    participant Provider as Auth Provider<br/>(State Manager)
+    participant API as API Service<br/>(HTTP Client)
+    participant Backend as FastAPI Server<br/>(Backend Service)
+    participant DB as PostgreSQL<br/>(Database)
+
+    User->>UI: Enters email & password
+    UI->>Provider: login(email, password)
+    Provider->>API: POST /auth/login
+    API->>Backend: HTTP Request<br/>{email, password}
+    Backend->>DB: Verify credentials
+    DB-->>Backend: User data
+    Backend->>Backend: Generate JWT tokens
+    Backend-->>API: Response<br/>{access_token, refresh_token}
+    API->>API: Store tokens locally
+    API-->>Provider: LoginSuccess(user_data)
+    Provider->>Provider: Update auth state
+    Provider-->>UI: Navigate to Home
+    UI-->>User: Show Dashboard

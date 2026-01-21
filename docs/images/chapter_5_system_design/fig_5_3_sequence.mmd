@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Backend
+    participant Database
+    participant OAuth as OAuth Provider
+
+    rect rgb(200, 230, 255)
+        Note over Client,OAuth: Email/Password Flow
+        Client->>Backend: POST /auth/signup<br/>{email, password}
+        Backend->>Backend: Hash password (bcrypt)
+        Backend->>Database: Create User + AuthProvider
+        Database-->>Backend: User Created
+        Backend->>Backend: Generate JWT (access + refresh)
+        Backend-->>Client: {access_token, refresh_token}
+    end
+
+    rect rgb(255, 230, 200)
+        Note over Client,OAuth: OAuth Flow (Google)
+        Client->>OAuth: Request Authorization
+        OAuth-->>Client: Authorization Code
+        Client->>Backend: POST /auth/google/callback<br/>{code}
+        Backend->>OAuth: Exchange Code for Tokens
+        OAuth-->>Backend: {access_token, user_info}
+        Backend->>Database: Find or Create User
+        Backend->>Backend: Generate JWT
+        Backend-->>Client: {access_token, refresh_token}
+    end

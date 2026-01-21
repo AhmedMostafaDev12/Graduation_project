@@ -1,0 +1,20 @@
+graph TB
+    subgraph "Security Layers"
+        L1[Layer 1:<br/>HTTPS Encryption<br/>TLS 1.3]
+        L2[Layer 2:<br/>API Gateway<br/>Rate Limiting]
+        L3[Layer 3:<br/>Authentication<br/>JWT Validation]
+        L4[Layer 4:<br/>Authorization<br/>User-Level Access]
+        L5[Layer 5:<br/>Data Encryption<br/>Password Hashing]
+        L6[Layer 6:<br/>Database<br/>Prepared Statements]
+    end
+
+    Internet[Internet] --> L1
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L5 --> L6
+    L6 --> DB[(Database)]
+
+    style L3 fill:#4ECDC4
+    style L5 fill:#FFD93D

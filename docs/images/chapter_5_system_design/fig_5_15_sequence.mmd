@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant Client
+    participant BurnoutService
+    participant Database
+    participant RAGService
+
+    Client->>BurnoutService: POST /analyze
+    BurnoutService->>Database: SELECT tasks, integrations WHERE user_id=X
+    Database-->>BurnoutService: User's tasks + calendar data
+    BurnoutService->>BurnoutService: Calculate burnout score
+    BurnoutService->>Database: INSERT INTO burnout_analyses
+    Database-->>BurnoutService: Analysis saved (ID=123)
+    BurnoutService->>RAGService: trigger_recommendations(analysis_id=123)
+    RAGService->>Database: SELECT * FROM burnout_analyses WHERE id=123
+    RAGService->>Database: SELECT tasks WHERE user_id=X
+    Database-->>RAGService: Analysis + Tasks
+    RAGService->>RAGService: RAG pipeline (retrieve, rank, generate)
+    RAGService->>Database: INSERT INTO recommendations
+    Database-->>RAGService: Recommendations saved
+    RAGService-->>BurnoutService: Recommendations created
+    BurnoutService-->>Client: Analysis complete

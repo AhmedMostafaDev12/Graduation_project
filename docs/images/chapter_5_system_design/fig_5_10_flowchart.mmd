@@ -1,0 +1,67 @@
+flowchart TB
+    subgraph "Notebook Library Service"
+        Router[Notebook Router<br/>/notebooks/*]
+
+        subgraph "Content Ingestion"
+            PDF[PDF Processor<br/>PyPDF2]
+            Audio[Audio Processor<br/>AssemblyAI]
+            Image[Image Processor<br/>Vision OCR]
+            URL[URL Scraper<br/>BeautifulSoup]
+            YouTube[YouTube Processor<br/>yt-dlp + Transcribe]
+        end
+
+        subgraph "RAG Pipeline"
+            Chunker[Text Chunker<br/>Semantic Splits]
+            Embedder[Embedding Generator<br/>Voyage AI]
+            VectorStore[Vector Storage<br/>PGVector]
+            ChatRetriever[Chat Retriever<br/>Query Answering]
+        end
+
+        subgraph "AI Studio"
+            FlashcardGen[Flashcard Generator<br/>LLM]
+            QuizGen[Quiz Generator<br/>LLM]
+            AudioGen[Audio Summary Gen<br/>TTS]
+            TaskExtractor[Task Extractor<br/>LLM]
+        end
+
+        Router --> PDF
+        Router --> Audio
+        Router --> Image
+        Router --> URL
+        Router --> YouTube
+
+        PDF --> Chunker
+        Audio --> Chunker
+        Image --> Chunker
+        URL --> Chunker
+        YouTube --> Chunker
+
+        Chunker --> Embedder
+        Embedder --> VectorStore
+
+        VectorStore --> ChatRetriever
+        VectorStore --> FlashcardGen
+        VectorStore --> QuizGen
+        VectorStore --> AudioGen
+        VectorStore --> TaskExtractor
+    end
+
+    Assembly[AssemblyAI]
+    Voyage[Voyage AI]
+    Groq[Groq API]
+    PG[(PostgreSQL<br/>+ PGVector)]
+
+    Audio --> Assembly
+    Image --> Groq
+    YouTube --> Assembly
+
+    Embedder --> Voyage
+    VectorStore --> PG
+
+    ChatRetriever --> Groq
+    FlashcardGen --> Groq
+    QuizGen --> Groq
+    TaskExtractor --> Groq
+
+    style VectorStore fill:#FFD93D
+    style ChatRetriever fill:#4ECDC4

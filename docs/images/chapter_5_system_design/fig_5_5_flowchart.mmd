@@ -1,0 +1,42 @@
+flowchart TB
+    subgraph "Authentication Service"
+        Router[Auth Router<br/>/auth/*]
+
+        subgraph "Endpoints"
+            Signup[POST /signup]
+            Login[POST /login]
+            Refresh[POST /refresh]
+            GoogleAuth[POST /google/callback]
+            AppleAuth[POST /apple/callback]
+        end
+
+        subgraph "Core Logic"
+            Hasher[Password Hasher<br/>bcrypt]
+            JWTManager[JWT Manager<br/>encode/decode]
+            OAuthClient[OAuth Client<br/>Google/Apple]
+        end
+
+        Router --> Signup
+        Router --> Login
+        Router --> Refresh
+        Router --> GoogleAuth
+        Router --> AppleAuth
+
+        Signup --> Hasher
+        Signup --> JWTManager
+        Login --> Hasher
+        Login --> JWTManager
+        Refresh --> JWTManager
+        GoogleAuth --> OAuthClient
+        GoogleAuth --> JWTManager
+        AppleAuth --> OAuthClient
+    end
+
+    DB[(Users DB)]
+
+    Hasher --> DB
+    JWTManager --> DB
+    OAuthClient --> DB
+
+    style Router fill:#4ECDC4
+    style JWTManager fill:#FFD93D

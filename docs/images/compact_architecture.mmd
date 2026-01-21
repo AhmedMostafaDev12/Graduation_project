@@ -1,0 +1,48 @@
+flowchart TD
+    Client[Mobile App Client]
+
+    Client --> API[API Gateway]
+
+    API --> AI[AI Services]
+    API --> BE[Backend Services]
+
+    AI --> AI1[Burnout Analysis]
+    AI --> AI2[RAG Recommendations]
+    AI --> AI3[Task Extraction]
+    AI --> AI4[AI Companion]
+    AI --> AI5[Notebook Library]
+
+    BE --> BE1[Authentication]
+    BE --> BE2[User Management]
+    BE --> BE3[Integrations]
+
+    AI1 --> DB
+    AI2 --> DB
+    AI3 --> DB
+    AI4 --> DB
+    AI5 --> DB
+    BE1 --> DB
+    BE2 --> DB
+    BE3 --> DB
+
+    DB[(PostgreSQL + PGVector<br/>Shared Database)]
+
+    AI1 -.-> EXT[External APIs]
+    AI2 -.-> EXT
+    AI3 -.-> EXT
+    AI4 -.-> EXT
+    AI5 -.-> EXT
+
+    EXT --> GROQ[Groq LLM]
+    EXT --> VOYAGE[Voyage AI]
+    EXT --> ASSEMBLY[AssemblyAI]
+
+    style Client fill:#E3F2FD
+    style API fill:#B3E5FC
+    style AI fill:#FFE0B2
+    style BE fill:#C8E6C9
+    style DB fill:#6C5CE7
+    style EXT fill:#FFF9C4
+    style GROQ fill:#FFD93D
+    style VOYAGE fill:#FFD93D
+    style ASSEMBLY fill:#FFD93D

@@ -1,0 +1,40 @@
+graph TB
+    LB[Load Balancer<br/>Nginx/AWS ELB]
+
+    subgraph "Application Servers"
+        App1[FastAPI Instance 1]
+        App2[FastAPI Instance 2]
+        App3[FastAPI Instance N]
+    end
+
+    subgraph "Database Layer"
+        PG[(Primary DB<br/>PostgreSQL)]
+        Replica1[(Read Replica 1)]
+        Replica2[(Read Replica 2)]
+    end
+
+    subgraph "Cache Layer"
+        Redis[(Redis<br/>Session Cache)]
+    end
+
+    LB --> App1
+    LB --> App2
+    LB --> App3
+
+    App1 --> PG
+    App1 --> Replica1
+    App1 --> Redis
+
+    App2 --> PG
+    App2 --> Replica2
+    App2 --> Redis
+
+    App3 --> PG
+    App3 --> Replica1
+    App3 --> Redis
+
+    PG -.->|Replication| Replica1
+    PG -.->|Replication| Replica2
+
+    style LB fill:#4ECDC4
+    style Redis fill:#FFD93D

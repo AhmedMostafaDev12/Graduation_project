@@ -1,0 +1,43 @@
+flowchart TB
+    subgraph "Task Extraction Service"
+        Router[Task Router<br/>/tasks/extract]
+
+        subgraph "Input Handlers"
+            Audio[Audio Handler<br/>MP3, WAV, M4A]
+            PDF[PDF Handler<br/>PyPDF2]
+            Image[Image Handler<br/>JPG, PNG]
+            Video[Video Handler<br/>MP4]
+        end
+
+        subgraph "Processing Pipeline"
+            Transcriber[Speech-to-Text<br/>AssemblyAI]
+            OCR[Vision OCR<br/>Groq Vision]
+            Parser[LLM Task Parser<br/>Structured Output]
+        end
+
+        Router --> Audio
+        Router --> PDF
+        Router --> Image
+        Router --> Video
+
+        Audio --> Transcriber
+        Video --> Transcriber
+        Image --> OCR
+
+        Transcriber --> Parser
+        PDF --> Parser
+        OCR --> Parser
+    end
+
+    Assembly[AssemblyAI<br/>Universal-1]
+    Groq[Groq Vision<br/>llama-3.2-90b-vision]
+    GroqLLM[Groq API<br/>Llama 3.1]
+    DB[(Tasks DB)]
+
+    Transcriber --> Assembly
+    OCR --> Groq
+    Parser --> GroqLLM
+    Parser --> DB
+
+    style Parser fill:#4ECDC4
+    style Transcriber fill:#F4A261

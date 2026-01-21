@@ -871,7 +871,124 @@ Design components maintain consistency across all screens:
 
 ---
 
-## 5.8 Summary
+## 5.8 Frontend Development
+
+### 5.8.1 What is the Frontend?
+
+The **frontend** (also called "client-side" or "mobile app") is the user-facing component of Sentry AI that users directly interact with on their smartphones. It encompasses everything visible and interactive:
+
+- The visual interface users see (screens, buttons, cards)
+- The touch interactions and animations
+- The logic that determines what to display when
+- The communication layer that fetches data from backend servers
+
+In Sentry AI's architecture, the frontend acts as a **bridge** between the user and the AI/backend services. When a user opens the app, the frontend retrieves their burnout score from the server, formats it beautifully, and displays it with calming colors and smooth animations.
+
+**Frontend vs Backend:**
+- **Frontend (Flutter app):** Runs on the user's phone, handles UI rendering, user input, and local storage
+- **Backend (Python services):** Runs on remote servers, handles data processing, AI analysis, and database operations
+
+### 5.8.2 Technology Stack
+
+**Framework: Flutter 3.24+**
+
+Flutter is Google's UI toolkit for building natively compiled mobile applications from a single codebase. Unlike traditional approaches that require separate development for iOS and Android, Flutter enables developers to write the app once and deploy it to both platforms.
+
+**Why Flutter for Sentry AI:**
+- **Cross-platform:** Single codebase reduces development time by 50%
+- **Native performance:** Compiles to native ARM code, ensuring smooth 60fps animations
+- **Rich UI components:** Built-in widgets for implementing the glassmorphism design
+- **Hot reload:** Developers see design changes instantly during development
+
+**Key Technologies:**
+- **Language:** Dart 3.0+ (modern, type-safe language optimized for UI development)
+- **State Management:** Provider/Riverpod (manages app state reactively - when burnout score updates, UI automatically refreshes)
+- **HTTP Client:** Dio with interceptors (handles API calls to backend, automatically refreshes expired JWT tokens)
+- **Local Storage:** Shared Preferences (stores user settings and cached data on device)
+- **Navigation:** GoRouter (declarative routing system for screen transitions)
+
+### 5.8.3 Flutter Project Structure
+
+The mobile app follows a feature-based architecture for maintainability:
+
+```
+mobile_app/
+├── lib/
+│   ├── core/                   # Shared utilities
+│   │   ├── constants/          # Colors (#E8F4FC), text styles, API URLs
+│   │   ├── theme/              # Light theme with blue palette
+│   │   └── utils/              # Validators, date formatters
+│   │
+│   ├── models/                 # Data structures
+│   │   ├── user_model.dart
+│   │   ├── task_model.dart
+│   │   ├── burnout_model.dart
+│   │   └── recommendation_model.dart
+│   │
+│   ├── providers/              # State management
+│   │   ├── auth_provider.dart       # Login state
+│   │   ├── task_provider.dart       # Task list state
+│   │   └── burnout_provider.dart    # Burnout score state
+│   │
+│   ├── services/               # Backend communication
+│   │   ├── api_service.dart         # Base HTTP client
+│   │   ├── auth_service.dart        # Login/signup API calls
+│   │   └── storage_service.dart     # Local data persistence
+│   │
+│   ├── screens/                # Complete pages organized by feature
+│   │   ├── onboarding/         # 3 onboarding screens
+│   │   ├── auth/               # Login, signup, password reset
+│   │   ├── home/               # Dashboard
+│   │   ├── tasks/              # Task management
+│   │   ├── burnout/            # Burnout analysis
+│   │   ├── notebook/           # Notebook library
+│   │   └── profile/            # Settings and profile
+│   │
+│   ├── widgets/                # Reusable UI components
+│   │   ├── gradient_card.dart       # Teal gradient cards
+│   │   ├── custom_button.dart       # Styled buttons
+│   │   └── loading_indicator.dart   # Progress indicators
+│   │
+│   ├── routes/                 # Navigation
+│   │   └── app_router.dart          # Route definitions
+│   │
+│   └── main.dart              # App entry point
+│
+├── assets/
+│   ├── images/                # Illustrations from Figma
+│   └── fonts/                 # Custom typography
+│
+└── pubspec.yaml              # Dependencies (Flutter packages)
+```
+
+### 5.8.4 Design-to-Code Translation
+
+**Glassmorphism Implementation:**
+
+The glassmorphism aesthetic from Figma designs is implemented using Flutter's `BackdropFilter` widget combined with semi-transparent containers. Each card applies a blur effect to content behind it while maintaining 80% opacity white backgrounds.
+
+**Color Palette:**
+
+The color constants defined in `core/constants/colors.dart` directly mirror the Figma design system:
+```dart
+primaryBackground: Color(0xFFE8F4FC)  // Light blue
+tealGradientStart: Color(0xFF4ECDC4)  // Teal
+statusGreen: Color(0xFF4CAF50)        // Healthy
+statusYellow: Color(0xFFFFC107)       // Moderate
+statusRed: Color(0xFFF44336)          // Critical
+```
+
+**Responsive Layouts:**
+
+Flutter's `LayoutBuilder` and `MediaQuery` adapt the UI to different screen sizes. For example, the burnout gauge scales its radius based on screen width to ensure it looks proportional on both small and large devices.
+
+**Animation Implementation:**
+
+The burnout score counter animates from 0 to the actual value using `TweenAnimationBuilder`, creating a satisfying "counting up" effect when the screen loads.
+
+---
+
+## 5.9 Summary
 
 The UI/UX design of Sentry AI reflects a deep understanding of the psychological needs of users experiencing burnout. The light blue color palette creates calm. Friendly illustrations humanize the experience. Clear navigation prevents frustration. Progressive disclosure manages cognitive load.
 
@@ -884,5 +1001,7 @@ The 30+ screens across seven functional areas create a comprehensive interface f
 - Integrations (2 screens)
 - Profile and settings (3 screens)
 - Wireframes and flow documentation (5 screens)
+
+The Flutter frontend implementation translates these designs into a responsive, performant mobile application with clear architectural separation between UI components, business logic, and server communication. The modular structure ensures maintainability as the application evolves.
 
 Every design decision—from the color of a button to the wording of a prompt—was made with the user's well-being in mind. The result is an interface that doesn't just display information about burnout; it actively contributes to the user's sense of calm, control, and hope.
