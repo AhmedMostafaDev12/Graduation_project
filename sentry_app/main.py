@@ -23,11 +23,10 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 # Backend Service Routers
-# Formerly: backend_services.app.routers
-from sentry_app.routers import user, task
-from sentry_app.routers.auth import app_auth, google_auth, apple_auth, facebook_auth
-from sentry_app.routers.uploads import upload_files
-from sentry_app.routers.integrations import (
+from .routers import user, task
+from .routers.auth import app_auth, google_auth, apple_auth, facebook_auth
+from .routers.uploads import upload_files
+from .routers.integrations import (
     sync_task,
     google_tasks,
     google_classroom,
@@ -36,24 +35,23 @@ from sentry_app.routers.integrations import (
 )
 
 # Burnout Service Routers
-# Formerly: app.services.burn_out_service...
-from sentry_app.services.burn_out_service.api.routers import (
+from .services.burn_out_service.api.routers import (
     burnout_router,
     workload_router,
     recommendations_router,
     profile_router,
     integrations_router
 )
-from sentry_app.services.burn_out_service.api.routers.recommendation_applier import router as recommendation_applier_router
+from .services.burn_out_service.api.routers.recommendation_applier import router as recommendation_applier_router
 
 # Task Extraction Router
-from sentry_app.services.task_extraction.task_extraction_api import router as task_extraction_router
+from .services.task_extraction.task_extraction_api import router as task_extraction_router
 
 # Notebook Library Router
-from sentry_app.services.notebook_library.router import router as notebook_router
+from .services.notebook_library.router import router as notebook_router
 
 # AI Companion Router
-from sentry_app.services.ai_companion.router import router as companion_router
+from .services.ai_companion.router import router as companion_router
 
 # ============================================================================
 # APP DEFINITION
