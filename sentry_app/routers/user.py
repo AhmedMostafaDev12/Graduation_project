@@ -53,14 +53,12 @@ def create_user(user: schemas.UserCreate, db: Session=Depends(get_db)):
     try:
         print(f"[SIGNUP] Creating AI profile for user {new_user.id}...")
 
-        # Import UserProfile from AI services path
-        import sys
-        from pathlib import Path
-        ai_services_path = Path(__file__).parent.parent.parent.parent / "AI_services" / "app" / "services" / "burn_out_service"
-        if str(ai_services_path) not in sys.path:
-            sys.path.insert(0, str(ai_services_path))
-
-        from user_profile.user_profile_models import UserProfile, UserPreferences, UserConstraint, UserBehavioralProfile
+        from sentry_app.services.burn_out_service.user_profile.user_profile_models import (
+            UserProfile, 
+            UserPreferences, 
+            UserConstraint, 
+            UserBehavioralProfile
+        )
 
         # Create minimal user profile
         ai_profile = UserProfile(

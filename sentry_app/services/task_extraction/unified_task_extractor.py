@@ -415,7 +415,7 @@ class UnifiedTaskExtractor:
         from datetime import datetime as dt, date, time
 
         # Import shared service (replaces HTTP call)
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+        # path hack removed, '..', '..', '..'))
         from sentry_app.shared_services import TaskService
 
         def parse_time_to_datetime(time_str: str, deadline_str: str = None) -> Optional[dt]:

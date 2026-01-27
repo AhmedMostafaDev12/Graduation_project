@@ -20,9 +20,8 @@ from sentry_app.services.notebook_library.Document import DocumentProcessor, upl
 from sentry_app.services.notebook_library.LangGraph_tool import graph
 
 # Add backend path for authentication imports
-backend_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'backend_services')
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
+# path hack removed
+# path hack removed)
 
 from sentry_app.oauth2 import get_current_user
 from sentry_app.models import User

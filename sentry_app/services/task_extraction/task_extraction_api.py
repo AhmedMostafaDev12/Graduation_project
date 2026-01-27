@@ -27,9 +27,8 @@ import sys
 from sqlalchemy.orm import Session
 
 # Add backend_services to path for authentication
-backend_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'backend_services')
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
+# path hack removed
+# path hack removed)
 
 from sentry_app.oauth2 import get_current_user
 from sentry_app.models import User
@@ -585,7 +584,7 @@ async def get_extraction_history(
     try:
         # Try to import from integration path
         import sys
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'burn_out_service', 'integrations'))
+        # path hack removed, '..', '..', 'burn_out_service', 'integrations'))
         from task_database_integration import Task
     except:
         # Fallback: define inline

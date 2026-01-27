@@ -23,15 +23,14 @@ from langchain_core.output_parsers import JsonOutputParser
 load_dotenv()
 
 # Add backend_services to path for authentication
-backend_path = Path(__file__).parent.parent.parent.parent.parent.parent / "backend_services"
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
+# path hack removed
+# path hack removed)
 
 from sentry_app.oauth2 import get_current_user
 from sentry_app.models import User
 
 # Import shared services (replaces HTTP calls)
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..'))
+# path hack removed, '..', '..', '..', '..', '..'))
 from sentry_app.shared_services import TaskService
 
 from sentry_app.services.burn_out_service.api.dependencies import get_db

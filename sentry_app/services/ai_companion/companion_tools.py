@@ -19,7 +19,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # Import shared services (replaces HTTP calls)
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# path hack removed, '..', '..', '..'))
 from sentry_app.shared_services import (
     TaskService,
     BurnoutService,
@@ -156,7 +156,7 @@ def analyze_sentiment_with_llm(text: str) -> Dict[str, Any]:
     try:
         # Import the existing sentiment analyzer from burnout service
         import sys
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'burn_out_service'))
+        # path hack removed, '..', '..', 'burn_out_service'))
 
         from Analysis_engine_layer.sentiment_analyzer import SentimentAnalyzer, QualitativeData
 
@@ -234,9 +234,8 @@ def get_task_statistics(user_id: int, db: Session) -> Dict[str, Any]:
 
         # Import Task model
         import sys
-        backend_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'backend_services')
-        if str(backend_path) not in sys.path:
-            sys.path.insert(0, str(backend_path))
+        # path hack removed
+        # path hack removed)
 
         from sentry_app.models import Task
 

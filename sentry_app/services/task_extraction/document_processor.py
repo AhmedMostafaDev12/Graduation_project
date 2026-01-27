@@ -6,14 +6,13 @@ import tempfile
 import base64
 import os
 
-# Poppler path configuration for Windows (required for hi_res strategy)
-POPPLER_PATH = r"C:\Users\USER\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
-if os.path.exists(POPPLER_PATH):
+# Poppler path configuration (required for hi_res strategy on Windows)
+POPPLER_PATH = os.getenv("POPPLER_PATH")
+if POPPLER_PATH and os.path.exists(POPPLER_PATH):
     os.environ['PATH'] = POPPLER_PATH + os.pathsep + os.environ.get('PATH', '')
     print(f"[OK] Poppler path configured: {POPPLER_PATH}")
-else:
-    print(f"[WARNING] Poppler not found at {POPPLER_PATH}")
-    print(f"[INFO] PDF processing may fail. Please install Poppler or update POPPLER_PATH")
+elif os.name == 'nt':
+    print(f"[WARNING] Poppler not found. Please set POPPLER_PATH in .env for PDF processing on Windows")
 
 # Download required NLTK data
 try:

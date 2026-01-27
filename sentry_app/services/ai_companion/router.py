@@ -134,9 +134,8 @@ async def chat_audio(
 
         # Transcribe audio using AssemblyAI (reuse from task extraction)
         import sys
-        task_extraction_path = os.path.join(os.path.dirname(__file__), '..', 'task_extraction')
-        if str(task_extraction_path) not in sys.path:
-            sys.path.insert(0, str(task_extraction_path))
+        # path hack removed
+        # path hack removed)
 
         from audio_processor import AudioProcessor
 

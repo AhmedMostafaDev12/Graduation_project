@@ -46,8 +46,12 @@ except ImportError:
     print("Warning: pdf2image not installed. PDF processing will be limited.")
     print("Install with: pip install pdf2image")
 
-# Poppler path configuration for Windows
-POPPLER_PATH = r"C:\Users\USER\Downloads\Release-25.12.0-0\poppler-25.12.0\Library\bin"
+# Poppler path configuration (required for PDF processing on Windows)
+POPPLER_PATH = os.getenv("POPPLER_PATH")
+if POPPLER_PATH and os.path.exists(POPPLER_PATH):
+    print(f"[OK] Poppler path configured for handwriting processor: {POPPLER_PATH}")
+elif os.name == 'nt' and not POPPLER_PATH:
+    print(f"[WARNING] Poppler not found for handwriting processor. Please set POPPLER_PATH in .env")
 
 # Initialize Groq Vision LLM
 vision_llm = ChatGroq(

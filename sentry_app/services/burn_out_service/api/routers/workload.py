@@ -12,9 +12,8 @@ import sys
 from pathlib import Path
 
 # Add backend_services to path for authentication
-backend_path = Path(__file__).parent.parent.parent.parent.parent.parent / "backend_services"
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
+# path hack removed
+# path hack removed)
 
 from sentry_app.oauth2 import get_current_user
 from sentry_app.models import User
@@ -39,9 +38,8 @@ except ImportError:
     # Fallback for when imported from unified system
     import sys
     from pathlib import Path
-    burnout_service_path = Path(__file__).parent.parent.parent.parent
-    if str(burnout_service_path) not in sys.path:
-        sys.path.insert(0, str(burnout_service_path))
+    # path hack removed
+    # path hack removed)
     from sentry_app.services.burn_out_service.Analysis_engine_layer import UserMetrics, QualitativeData
 
 from sentry_app.services.burn_out_service.user_profile.integration_services import BurnoutSystemIntegration
