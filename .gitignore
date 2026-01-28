@@ -46,7 +46,6 @@ AI_services/app/services/task_extraction/vosk-model*/
 **/.chroma/
 
 # Uploads & User Data
-**/uploads/
 **/upload_files/
 **/temp_files/
 **/tmp/
