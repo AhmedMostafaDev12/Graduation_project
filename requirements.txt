@@ -16,10 +16,11 @@ langchain-core==0.3.75
 langchain-community==0.3.30
 langchain-groq==0.2.5
 groq==0.13.0
+langgraph
 
 # Voyage AI Embeddings
 langchain-voyageai==0.2.0
-voyageai>=0.3.4,<1
+voyageai==0.3.4
 
 # PDF Processing (for handwritten_processor.py)
 pdf2image==1.16.3  #  needed for PDF to image conversion
@@ -60,7 +61,6 @@ mypy_extensions==1.1.0
 oauthlib==3.3.1
 passlib==1.7.4
 proto-plus==1.26.1
-protobuf>=4.21.6,<5
 psutil==5.9.8
 psycopg2==2.9.10
 pyasn1==0.6.1
